@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
       return res.status(response.status).json({ error: "Supabase scout directory query failed (" + response.status + "): " + detail.slice(0, 350) });
     }
     const scouts = await response.json();
-    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=900");
+    res.setHeader("Cache-Control", "no-store, max-age=0");
     res.status(200).json({ scouts, count: scouts.length });
   } catch (error) {
     res.status(502).json({ error: "Unable to reach the scout directory: " + String(error.message || error).slice(0, 250) });
