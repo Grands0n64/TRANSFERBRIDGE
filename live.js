@@ -111,12 +111,23 @@
   }
   async function loadScoutDirectory(){
     const grid=$("#scoutDirectory"),select=$("#applicationScout");
-    if(!grid||!client)return;
-    const {data,error}=await client.from("scout_profiles").select("user_id,organisation,territory,positions,age_groups,bio,verified,profiles(full_name,country)").eq("verified",true).order("created_at",{ascending:false});
-    if(error){grid.innerHTML="<p>Scout directory could not load. Please try again later.</p>";return;}
-    if(!data?.length){grid.innerHTML="<p>No verified scout profiles are listed yet. Scouts can register below; profiles appear after verification.</p>";return;}
-    grid.innerHTML=data.map(s=>'<article class="player-card"><span class="player-avatar">SC</span><span><h3>'+safe(s.profiles?.full_name||"Verified scout")+'</h3><p>'+safe(s.organisation||"Independent scout")+' · '+safe(s.territory||s.profiles?.country||"Territory not listed")+'</p><p>'+safe(s.positions||"Positions not specified")+' · '+safe(s.age_groups||"Age groups not specified")+'</p></span></article>').join("");
-    if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>'+data.map(s=>'<option value="'+safe(s.user_id)+'">'+safe(s.profiles?.full_name||"Scout")+' — '+safe(s.organisation||"Independent")+'</option>').join("");
+    if(!grid)return;
+    grid.innerHTML="<p>Loading verified scout profiles…</p>";
+    try{
+      const response=await fetch("/api/scouts");
+      const body=await response.json();
+      if(!response.ok||!Array.isArray(body.scouts))throw new Error(body.error||"Scout directory unavailable.");
+      const data=body.scouts;
+      if(!data.length){
+        grid.innerHTML="<p>No registered scout profiles have been verified yet. See Football Contacts for publicly listed club scouting contacts, including scouts who have not joined TRANSFERBRIDGE.</p>";
+        if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>';
+        return;
+      }
+      grid.innerHTML=data.map(s=>'<article class="player-card"><span class="player-avatar">SC</span><span><h3>'+safe(s.full_name||"Verified scout")+'</h3><p>'+safe(s.organisation||"Independent scout")+' · '+safe(s.territory||s.country||"Territory not listed")+'</p><p>'+safe(s.positions||"Positions not specified")+' · '+safe(s.age_groups||"Age groups not specified")+'</p><p>'+safe(s.bio||"")+'</p><span class="tag">TRANSFERBRIDGE verified profile</span></span></article>').join("");
+      if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>'+data.map(s=>'<option value="'+safe(s.user_id)+'">'+safe(s.full_name||"Scout")+' — '+safe(s.organisation||"Independent")+'</option>').join("");
+    }catch(error){
+      grid.innerHTML="<p>Scout directory could not load: "+safe(error.message)+"</p>";
+    }
   }
   async function saveScoutProfile(e){
     e.preventDefault();if(!client)return note("#scoutProfileNote","Database is not connected. Check Supabase settings and redeploy.");
