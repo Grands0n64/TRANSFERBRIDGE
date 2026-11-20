@@ -2,6 +2,9 @@ module.exports = async (req, res) => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return res.status(503).json({ error: "Contact directory is not connected: configure SUPABASE_URL and SUPABASE_ANON_KEY in Vercel." });
+  let baseUrl;
+  try { baseUrl = new URL(url).origin; }
+  catch { return res.status(500).json({ error: "SUPABASE_URL is invalid. Use your Supabase project URL." }); }
   const q = String(req.query.q || "").trim().slice(0, 100);
   const league = String(req.query.league || "").trim().slice(0, 80);
   const department = String(req.query.department || "").trim().slice(0, 80);
