@@ -7,3 +7,7 @@
 .application-fields button{grid-column:1/-1;justify-self:start}
 #scoutDirectory .player-card,#myApplications .player-card{min-width:0}
 @media(max-width:650px){.application-fields{grid-template-columns:1fr}.application-fields .wide-field,.application-fields button{grid-column:1}}
+
+.application-links{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.scout-application{align-items:flex-start}
+.scout-application>span:last-child{min-width:0}
