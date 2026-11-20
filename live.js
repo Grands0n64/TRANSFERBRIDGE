@@ -54,7 +54,7 @@
     $("#signupForm").hidden=true;$("#signupSuccess").hidden=false;
     $("#signupSuccess").textContent="Signed in as "+(user.email||"TRANSFERBRIDGE member")+". Your account is connected.";
     $("#loginBtn").textContent="Account";
-    await loadScoutDirectory();await loadMyApplications();
+    await loadScoutDirectory();await loadMyApplications();await loadScoutInbox();
   }
   async function livePlayerSearch(){
     const term=$("#playerSearch").value.trim(),grid=$("#playerGrid"),noteEl=$("#playerDataNote");
@@ -140,6 +140,25 @@
     if(result.error)return note("#applicationNote","Files uploaded but application could not be saved: "+result.error.message+". Please contact support before submitting again.");
     form.reset();note("#applicationNote",values.scout_id?"Application sent to your selected scout.":"Application submitted to TRANSFERBRIDGE for review.");
     await loadMyApplications();
+  }
+  async function loadScoutInbox(){
+    const target=$("#scoutInbox");if(!target||!client||!currentUser)return;
+    const {data:profile}=await client.from("profiles").select("role").eq("id",currentUser.id).maybeSingle();
+    if(profile?.role!=="scout"){target.innerHTML="<p>This inbox is available to Scout accounts.</p>";return;}
+    const {data,error}=await client.from("player_applications").select("id,player_name,date_of_birth,nationality,position,current_club,preferred_foot,height_cm,bio,message,cv_path,highlight_path,match_path,status,created_at").eq("scout_id",currentUser.id).order("created_at",{ascending:false});
+    if(error){target.innerHTML="<p>Could not load scout inbox: "+safe(error.message)+"</p>";return;}
+    if(!data?.length){target.innerHTML="<p>No player applications have been assigned to you yet.</p>";return;}
+    const cards=[];
+    for(const a of data){
+      const links=[];
+      for(const [path,label] of [[a.cv_path,"Football CV"],[a.highlight_path,"Highlight video"],[a.match_path,"Full-match footage"]]){
+        if(!path)continue;
+        const signed=await client.storage.from("player-media").createSignedUrl(path,3600);
+        if(!signed.error&&signed.data?.signedUrl)links.push('<a class="tag" href="'+safe(signed.data.signedUrl)+'" target="_blank" rel="noopener">'+label+' ↗</a>');
+      }
+      cards.push('<article class="player-card scout-application"><span class="player-avatar">PL</span><span><h3>'+safe(a.player_name)+'</h3><p>'+safe(a.position)+' · '+safe(a.nationality)+' · '+safe(a.current_club||"Club not supplied")+'</p><p>'+safe(a.bio||a.message||"No additional player introduction.")+'</p><span class="tag">'+safe(a.status)+' · '+safe(new Date(a.created_at).toLocaleDateString())+'</span><div class="application-links">'+links.join(" ")+'</div></span></article>');
+    }
+    target.innerHTML=cards.join("");
   }
   async function loadMyApplications(){
     const target=$("#myApplications");if(!target||!client||!currentUser)return;
