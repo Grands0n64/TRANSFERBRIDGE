@@ -10,7 +10,7 @@ module.exports = async (req, res) => {
     if(q) params.set("or","(club_name.ilike.*"+q+"*,contact_name.ilike.*"+q+"*,job_title.ilike.*"+q+"*)");
     if(league) params.set("league","eq."+league);
     if(department) params.set("department","eq."+department);
-    const response=await fetch(url.replace(/\\/$/,"")+"/rest/v1/public_club_contacts?"+params.toString(),{headers:{apikey:key,Authorization:"Bearer "+key}});
+    const response=await fetch(url.replace(/\/+$/,"")+"/rest/v1/public_club_contacts?"+params.toString(),{headers:{apikey:key,Authorization:"Bearer "+key}});
     if(!response.ok){const detail=await response.text();return res.status(response.status).json({error:"Supabase contact query failed ("+response.status+"): "+detail.slice(0,400)});}
     const contacts=await response.json();
     res.setHeader("Cache-Control","s-maxage=600, stale-while-revalidate=1800");
