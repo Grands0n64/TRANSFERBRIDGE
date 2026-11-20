@@ -148,7 +148,7 @@
     }
     const result=await client.from("player_applications").insert({
       id:appId,submitted_by:user.id,scout_id:values.scout_id||null,
-      player_name:values.player_name,date_of_birth:values.date_of_birth||null,
+      player_name:values.player_name,target_club:values.target_club||null,date_of_birth:values.date_of_birth||null,
       nationality:values.nationality,position:values.position,
       current_club:values.current_club||null,preferred_foot:values.preferred_foot||null,
       height_cm:values.height_cm?Number(values.height_cm):null,bio:values.bio||null,message:values.message||null,
