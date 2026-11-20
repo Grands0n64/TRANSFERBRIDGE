@@ -166,6 +166,7 @@ alter table public.club_contacts enable row level security;
 drop policy if exists "Public can view sourced club contacts" on public.club_contacts;
 create policy "Public can view sourced club contacts" on public.club_contacts
  for select to anon, authenticated using (true);
+ grant select on public.club_contacts to anon, authenticated;
 
 -- Publicly published official contact routes. A general club contact is
 -- deliberately labelled as such; it is not represented as a scout's inbox.
