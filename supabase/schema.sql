@@ -239,3 +239,15 @@ values
  ('Eredivisie','Eredivisie clubs','Browse named club staff and scouts','Scouting & recruitment','https://footycontacts.com/football-contacts/league/eredivisie/scouts','https://footycontacts.com/football-contacts/league/eredivisie/scouts','third-party','source-listed','Scout directory preview for Dutch clubs.'),
  ('Belgian Pro League','Belgian clubs','Browse club staff directory','Scouting & recruitment','https://www.footycontacts.com/countries/belgium/contacts','https://www.footycontacts.com/countries/belgium/contacts','third-party','source-listed','Belgium staff directory preview; direct contact fields require further research.')
 on conflict do nothing;
+
+
+-- Public, limited view of verified scout profiles. This exposes only professional
+-- directory fields, not private account details or email addresses.
+create or replace view public.public_scout_directory as
+select sp.user_id, p.full_name, p.country, sp.organisation, sp.territory,
+       sp.positions, sp.age_groups, sp.bio, sp.credentials_url, sp.created_at
+from public.scout_profiles sp
+join public.profiles p on p.id = sp.user_id
+where sp.verified = true and p.role = 'scout';
+
+grant select on public.public_scout_directory to anon, authenticated;
