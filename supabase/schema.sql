@@ -322,3 +322,6 @@ drop policy if exists "Members view own contact release requests" on public.cont
 create policy "Members view own contact requests"
  on public.contact_unlock_requests for select to authenticated
  using (auth.uid() = user_id);
+
+-- Optional player professional profile URL.
+alter table public.player_applications add column if not exists professional_profile_url text;
