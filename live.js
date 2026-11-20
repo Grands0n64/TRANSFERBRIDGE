@@ -135,12 +135,22 @@
       const body=await response.json();
       if(!response.ok||!Array.isArray(body.scouts))throw new Error(body.error||"Scout directory unavailable.");
       const data=body.scouts;
-      if(!data.length){
+      let ownPending=null;
+      if(currentUser){
+        const {data:myRole}=await client.from("profiles").select("role,full_name,country").eq("id",currentUser.id).maybeSingle();
+        if(myRole?.role==="scout"){
+          const {data:mine}=await client.from("scout_profiles").select("user_id,organisation,territory,positions,age_groups,bio,credentials_url,created_at,verified").eq("user_id",currentUser.id).maybeSingle();
+          if(mine&&!mine.verified&&!data.some(item=>item.user_id===currentUser.id)) ownPending={...mine,full_name:myRole.full_name,country:myRole.country};
+        }
+      }
+      if(!data.length&&!ownPending){
         grid.innerHTML="<p>No registered scout profiles have been verified yet. See Football Contacts for publicly listed club scouting contacts, including scouts who have not joined TRANSFERBRIDGE.</p>";
         if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>';
         return;
       }
-      grid.innerHTML=data.map(s=>'<article class="player-card scout-directory-card"><span class="player-avatar">SC</span><span class="scout-card-content"><h3>'+safe(s.full_name||"Verified scout")+'</h3><p>'+safe(s.organisation||"Independent scout")+' · '+safe(s.territory||s.country||"Territory not listed")+'</p><p>'+safe(s.positions||"Positions not specified")+' · '+safe(s.age_groups||"Age groups not specified")+'</p><p>'+safe(s.bio||"")+'</p><span class="tag">TRANSFERBRIDGE verified profile</span><div class="scout-card-actions"><button class="btn btn-gold scout-submit-btn" type="button" data-scout="'+safe(s.user_id)+'">Submit My Player Profile</button><button class="btn btn-quiet scout-unlock-btn" type="button" data-scout="'+safe(s.user_id)+'">Unlock Scout Email 🔒</button></div></span></article>').join("");
+      const verifiedCards=data.map(s=>'<article class="player-card scout-directory-card"><span class="player-avatar">SC</span><span class="scout-card-content"><h3>'+safe(s.full_name||"Verified scout")+'</h3><p>'+safe(s.organisation||"Independent scout")+' · '+safe(s.territory||s.country||"Territory not listed")+'</p><p>'+safe(s.positions||"Positions not specified")+' · '+safe(s.age_groups||"Age groups not specified")+'</p><p>'+safe(s.bio||"")+'</p><span class="tag">TRANSFERBRIDGE verified profile</span><div class="scout-card-actions"><button class="btn btn-gold scout-submit-btn" type="button" data-scout="'+safe(s.user_id)+'">Submit My Player Profile</button><button class="btn btn-quiet scout-unlock-btn" type="button" data-scout="'+safe(s.user_id)+'">Unlock Scout Email 🔒</button></div></span></article>').join("");
+      const pendingCard=ownPending?'<article class="player-card scout-directory-card"><span class="player-avatar">SC</span><span class="scout-card-content"><h3>'+safe(ownPending.full_name||"Your scout profile")+'</h3><p>'+safe(ownPending.organisation||"Independent scout")+' · '+safe(ownPending.territory||ownPending.country||"Territory not listed")+'</p><p>'+safe(ownPending.positions||"Positions not specified")+' · '+safe(ownPending.age_groups||"Age groups not specified")+'</p><p>'+safe(ownPending.bio||"")+'</p><span class="tag">Your profile · pending verification (visible only to you)</span></span></article>':"";
+      grid.innerHTML=verifiedCards+pendingCard;
       grid.querySelectorAll(".scout-submit-btn").forEach(btn=>btn.addEventListener("click",()=>{const select=$("#applicationScout");if(select)select.value=btn.dataset.scout;$("#player-application")?.scrollIntoView({behavior:"smooth"});note("#applicationNote","Selected scout. Complete your football CV and upload your footage below, then submit to TRANSFERBRIDGE.");}));
       grid.querySelectorAll(".scout-unlock-btn").forEach(btn=>btn.addEventListener("click",()=>{$("#contacts")?.scrollIntoView({behavior:"smooth"});note("#contactsNote","Search for this scout in Football Contacts and submit the contact request form. Email release requires payment and permission to disclose.");}));
       if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>'+data.map(s=>'<option value="'+safe(s.user_id)+'">'+safe(s.full_name||"Scout")+' — '+safe(s.organisation||"Independent")+'</option>').join("");
