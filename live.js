@@ -140,7 +140,9 @@
         if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>';
         return;
       }
-      grid.innerHTML=data.map(s=>'<article class="player-card"><span class="player-avatar">SC</span><span><h3>'+safe(s.full_name||"Verified scout")+'</h3><p>'+safe(s.organisation||"Independent scout")+' · '+safe(s.territory||s.country||"Territory not listed")+'</p><p>'+safe(s.positions||"Positions not specified")+' · '+safe(s.age_groups||"Age groups not specified")+'</p><p>'+safe(s.bio||"")+'</p><span class="tag">TRANSFERBRIDGE verified profile</span></span></article>').join("");
+      grid.innerHTML=data.map(s=>'<article class="player-card scout-directory-card"><span class="player-avatar">SC</span><span class="scout-card-content"><h3>'+safe(s.full_name||"Verified scout")+'</h3><p>'+safe(s.organisation||"Independent scout")+' · '+safe(s.territory||s.country||"Territory not listed")+'</p><p>'+safe(s.positions||"Positions not specified")+' · '+safe(s.age_groups||"Age groups not specified")+'</p><p>'+safe(s.bio||"")+'</p><span class="tag">TRANSFERBRIDGE verified profile</span><div class="scout-card-actions"><button class="btn btn-gold scout-submit-btn" type="button" data-scout="'+safe(s.user_id)+'">Submit My Player Profile</button><button class="btn btn-quiet scout-unlock-btn" type="button" data-scout="'+safe(s.user_id)+'">Unlock Scout Email 🔒</button></div></span></article>').join("");
+      grid.querySelectorAll(".scout-submit-btn").forEach(btn=>btn.addEventListener("click",()=>{const select=$("#applicationScout");if(select)select.value=btn.dataset.scout;$("#player-application")?.scrollIntoView({behavior:"smooth"});note("#applicationNote","Selected scout. Complete your football CV and upload your footage below, then submit to TRANSFERBRIDGE.");}));
+      grid.querySelectorAll(".scout-unlock-btn").forEach(btn=>btn.addEventListener("click",()=>{$("#contacts")?.scrollIntoView({behavior:"smooth"});note("#contactsNote","Search for this scout in Football Contacts and submit the contact request form. Email release requires payment and permission to disclose.");}));
       if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>'+data.map(s=>'<option value="'+safe(s.user_id)+'">'+safe(s.full_name||"Scout")+' — '+safe(s.organisation||"Independent")+'</option>').join("");
     }catch(error){
       grid.innerHTML="<p>Scout directory could not load: "+safe(error.message)+"</p>";
@@ -179,7 +181,7 @@
       player_name:values.player_name,target_club:values.target_club||null,date_of_birth:values.date_of_birth||null,
       nationality:values.nationality,position:values.position,
       current_club:values.current_club||null,preferred_foot:values.preferred_foot||null,
-      height_cm:values.height_cm?Number(values.height_cm):null,bio:values.bio||null,message:values.message||null,
+      height_cm:values.height_cm?Number(values.height_cm):null,professional_profile_url:values.professional_profile_url||null,bio:values.bio||null,message:values.message||null,
       cv_path:paths.cv_file||null,highlight_path:paths.highlight_file||null,match_path:paths.match_file||null
     });
     if(result.error)return note("#applicationNote","Files uploaded but application could not be saved: "+result.error.message+". Please contact support before submitting again.");
