@@ -101,8 +101,11 @@ create policy "Players manage own profile" on public.player_profiles for all to 
 
 drop policy if exists "Scout directory visible to members" on public.scout_profiles;
 drop policy if exists "Scouts manage own profile" on public.scout_profiles;
+drop policy if exists "Scouts create unverified profile" on public.scout_profiles;
+drop policy if exists "Scouts update unverified profile" on public.scout_profiles;
 create policy "Scout directory visible to members" on public.scout_profiles for select to authenticated using (verified = true or auth.uid() = user_id);
-create policy "Scouts manage own profile" on public.scout_profiles for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Scouts create unverified profile" on public.scout_profiles for insert to authenticated with check (auth.uid() = user_id and verified = false);
+create policy "Scouts update unverified profile" on public.scout_profiles for update to authenticated using (auth.uid() = user_id and verified = false) with check (auth.uid() = user_id and verified = false);
 
 drop policy if exists "Verified club staff are publicly viewable" on public.club_staff;
 drop policy if exists "Authenticated users can submit staff for review" on public.club_staff;
@@ -114,7 +117,6 @@ drop policy if exists "Players and assigned scouts view applications" on public.
 drop policy if exists "Players update own applications" on public.player_applications;
 create policy "Players create own applications" on public.player_applications for insert to authenticated with check (auth.uid() = submitted_by);
 create policy "Players and assigned scouts view applications" on public.player_applications for select to authenticated using (auth.uid() = submitted_by or auth.uid() = scout_id);
-create policy "Players update own applications" on public.player_applications for update to authenticated using (auth.uid() = submitted_by) with check (auth.uid() = submitted_by);
 
 drop policy if exists "Scouts manage own reports" on public.scouting_reports;
 create policy "Scouts manage own reports" on public.scouting_reports for all to authenticated using (auth.uid() = scout_id) with check (auth.uid() = scout_id);
