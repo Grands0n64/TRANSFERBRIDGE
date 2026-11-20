@@ -105,20 +105,23 @@
       const params=new URLSearchParams();if(q)params.set("q",q);if(league)params.set("league",league);if(type)params.set("department",type);
       const response=await fetch("/api/contacts?"+params.toString()),body=await response.json();
       if(!response.ok||!Array.isArray(body.contacts))throw new Error(body.error||"Contact directory unavailable.");
-      grid.innerHTML=body.contacts.map(c=>'<article class="contact-row" data-contact-id="'+safe(c.id)+'"><div class="contact-identity"><span class="contact-crest">⚽</span><div><h3>'+safe(c.contact_name||c.club_name)+'</h3><p>'+safe(c.job_title||c.department)+' · '+safe(c.club_name)+'</p><small>'+safe(c.league)+' · '+safe(c.verification_status)+'</small></div></div><div class="contact-actions"><span class="contact-mail-icon" title="Email address locked">✉</span><span class="contact-lock" aria-label="Locked">🔒</span></div><div class="contact-expanded" hidden><p class="locked-copy">Direct email and telephone are protected. TRANSFERBRIDGE can request the contact details on your behalf.</p><button class="btn btn-gold contact-request" type="button" data-id="'+safe(c.id)+'">Request contact release ↗</button><p class="data-note">'+(c.contact_url?'<a href="'+safe(c.contact_url)+'" target="_blank" rel="noopener">Official contact page ↗</a>':'Contact source is recorded by TRANSFERBRIDGE')+'</p><p class="data-note contact-request-note"></p></div></article>').join("")||"<p>No public contact records match those filters yet.</p>";
+      grid.innerHTML=body.contacts.map(c=>'<article class="contact-row" data-contact-id="'+safe(c.id)+'"><div class="contact-identity"><span class="contact-crest">⚽</span><div><h3>'+safe(c.contact_name||c.club_name)+'</h3><p>'+safe(c.job_title||c.department)+' · '+safe(c.club_name)+'</p><small>'+safe(c.league)+' · '+safe(c.verification_status)+'</small></div></div><div class="contact-actions"><span class="contact-mail-icon" title="Email address locked">✉</span><span class="contact-lock" aria-label="Locked">🔒</span></div><div class="contact-expanded" hidden><form class="contact-request-form" data-id="'+safe(c.id)+'"><h4>Request this contact from TRANSFERBRIDGE</h4><label>Full name<input name="requester_name" required maxlength="120" autocomplete="name" placeholder="Your full name"></label><label>Email address<input name="requester_email" type="email" required maxlength="254" autocomplete="email" placeholder="you@example.com"></label><label>WhatsApp / phone number<input name="requester_phone" required maxlength="40" autocomplete="tel" placeholder="+234…"></label><label>Country<input name="country" required maxlength="80" autocomplete="country-name" placeholder="Your country"></label><label>Why do you need this contact?<textarea name="reason" required maxlength="1000" rows="3" placeholder="Tell us briefly how you intend to use this contact"></textarea></label><button class="btn btn-gold" type="submit">Submit request to TRANSFERBRIDGE ↗</button><p class="data-note request-result" aria-live="polite"></p></form></div></article>').join("")||"<p>No public contact records match those filters yet.</p>";
       grid.querySelectorAll(".contact-row").forEach(row=>row.addEventListener("click",e=>{
         if(e.target.closest("a,button"))return;
         const panel=row.querySelector(".contact-expanded");panel.hidden=!panel.hidden;row.classList.toggle("is-open",!panel.hidden);
       }));
-      grid.querySelectorAll(".contact-request").forEach(btn=>btn.addEventListener("click",async e=>{
-        e.stopPropagation();
-        const row=btn.closest(".contact-row"),out=row.querySelector(".contact-request-note");
-        if(!client){out.textContent="Contact requests require the TRANSFERBRIDGE account database to be connected.";return;}
-        const {data:{user}}=await client.auth.getUser();
-        if(!user){out.textContent="Please log in or create a TRANSFERBRIDGE account before requesting this contact.";return;}
-        const result=await client.from("contact_unlock_requests").insert({user_id:user.id,contact_id:btn.dataset.id,status:"awaiting_payment"});
-        if(result.error){out.textContent="Request could not be saved: "+result.error.message;return;}
-        btn.disabled=true;out.textContent="Request saved. TRANSFERBRIDGE will contact you about availability and payment before releasing any protected details.";
+      grid.querySelectorAll(".contact-request-form").forEach(form=>form.addEventListener("submit",async e=>{
+        e.preventDefault();
+        const submit=form.querySelector('button[type="submit"]'),out=form.querySelector(".request-result");
+        const values=Object.fromEntries(new FormData(form).entries());
+        values.contact_id=form.dataset.id;
+        submit.disabled=true;out.textContent="Sending your request…";
+        try{
+          const response=await fetch("/api/contact-requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(values)});
+          const result=await response.json();
+          if(!response.ok)throw new Error(result.error||"Your request could not be submitted.");
+          form.reset();out.textContent="Your request has been sent to TRANSFERBRIDGE. Our team will contact you by email or phone about the next steps.";
+        }catch(error){out.textContent=error.message;submit.disabled=false;}
       }));
       note("#contactsNote","Showing "+body.contacts.length+" contact records. Direct email addresses and phone numbers are locked; click a contact to request release.");
     }catch(error){grid.innerHTML="<p>"+safe(error.message)+"</p>";}
