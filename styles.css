@@ -15,3 +15,26 @@
 .contact-card a:not(.tag){color:#d7b875;text-decoration:none;overflow-wrap:anywhere}
 .contact-card a:not(.tag):hover{text-decoration:underline}
 .contact-card .data-note{font-size:11px;line-height:1.6}
+
+/* Expandable club scouting contact profiles */
+.club-open{width:100%;text-align:left;color:var(--text);font:inherit;cursor:pointer;appearance:none}
+.club-open:hover{border-color:var(--gold);transform:translateY(-1px)}
+.club-open-hint{color:var(--gold)!important;margin-top:7px!important}
+.club-detail{margin-top:22px;padding:24px;background:#0e1a2b;border:1px solid #d8b46b66;scroll-margin-top:90px}
+.club-detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:22px}
+.club-detail-head h3{font:800 clamp(25px,4vw,36px) Manrope;margin:12px 0 6px;color:#f4f6f8}
+.club-detail-head p{font-size:12px;color:#9aa9bb;margin:0}
+.club-detail>h4{font:700 16px Manrope;margin:25px 0 15px}
+.club-detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+.club-detail-actions .btn{display:inline-flex;align-items:center;justify-content:center}
+.club-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.club-contact-card{min-width:0;padding:17px;background:#101f31;border:1px solid #24364d;overflow-wrap:anywhere}
+.club-contact-card h4{font:700 14px Manrope;margin:13px 0 6px}
+.club-contact-card>p{font-size:11px;line-height:1.6;color:#9aa9bb}
+.club-contact-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.contact-type,.contact-status{font-size:8px;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);border:1px solid #d8b46b55;padding:5px 7px}
+.contact-status{color:var(--green);border-color:#8cc9a155}
+.contact-line,.contact-action,.source-link{display:block;color:var(--gold);font-size:11px;margin-top:10px;overflow-wrap:anywhere}
+.contact-action{padding:9px 10px;border:1px solid #d8b46b55;width:max-content;max-width:100%}
+.contact-missing{font-size:10px;color:#8998aa}
+@media(max-width:650px){.club-detail{padding:17px}.club-contact-grid{grid-template-columns:1fr}.club-detail-head{align-items:flex-start}.club-detail-head .btn{padding:8px 10px}}
