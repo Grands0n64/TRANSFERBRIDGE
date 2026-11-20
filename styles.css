@@ -11,3 +11,7 @@
 .application-links{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
 .scout-application{align-items:flex-start}
 .scout-application>span:last-child{min-width:0}
+
+.contact-card a:not(.tag){color:#d7b875;text-decoration:none;overflow-wrap:anywhere}
+.contact-card a:not(.tag):hover{text-decoration:underline}
+.contact-card .data-note{font-size:11px;line-height:1.6}
