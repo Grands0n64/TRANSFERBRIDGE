@@ -11,13 +11,13 @@
         if (data.session) showSignedIn(data.session.user);
       }
     } catch {}
-    document.querySelectorAll("#loginBtn").forEach(b => b.addEventListener("click", () => { authMode="login"; $("#modalTitle").textContent="Welcome back."; $("#signupForm button[type=submit]").textContent="Log in ↗"; }));
-    ["joinBtn","heroJoin","ctaJoin"].forEach(id => $("#"+id)?.addEventListener("click", () => { authMode="signup"; $("#modalTitle").textContent="Create your profile."; $("#signupForm button[type=submit]").textContent="Create secure account ↗"; }));
+    document.querySelectorAll("#loginBtn").forEach(b => b.addEventListener("click", () => { authMode="login"; $("#modalTitle").textContent="Welcome back."; $("#signupForm button[type=submit]").textContent="Log in ↗"; $("input[name=name]").required=false; $("input[name=country]").required=false; }));
+    ["joinBtn","heroJoin","ctaJoin"].forEach(id => $("#"+id)?.addEventListener("click", () => { authMode="signup"; $("#modalTitle").textContent="Create your profile."; $("#signupForm button[type=submit]").textContent="Create secure account ↗"; $("input[name=name]").required=true; $("input[name=country]").required=true; }));
     $("#signupForm").addEventListener("submit", async e => {
       e.preventDefault(); e.stopImmediatePropagation();
       if (!client) return authMessage("Live accounts are not connected yet. Add SUPABASE_URL and SUPABASE_ANON_KEY in Vercel, then redeploy.");
       const data = Object.fromEntries(new FormData(e.currentTarget).entries());
-      const role = $("#accountType").value.toLowerCase();
+      const role = (authMode === "login" ? (client.auth.getUser ? "player" : "player") : $("#accountType").value.toLowerCase());
       let result;
       if (authMode === "login") {
         result = await client.auth.signInWithPassword({email:data.email,password:data.password});
