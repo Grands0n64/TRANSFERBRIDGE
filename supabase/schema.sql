@@ -5,12 +5,12 @@ create extension if not exists pgcrypto;
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null,
-  role text not null check (role in ('player','scout','agent','club','medical')),
+  role text not null check (role in ('player','scout','agent','club','medical','coach','executive','analyst','other')),
   country text,
   profile_url text,
   created_at timestamptz not null default now()
 );
-alter table public.profiles enable row level security;
+alter table public.profiles drop constraint if exists profiles_role_check;\nalter table public.profiles add constraint profiles_role_check check (role in ('player','scout','agent','club','medical','coach','executive','analyst','other'));\nalter table public.profiles enable row level security;
 create policy "Profiles are viewable by authenticated users" on public.profiles for select to authenticated using (true);
 create policy "Users create their own profile" on public.profiles for insert to authenticated with check (auth.uid() = id);
 create policy "Users update their own profile" on public.profiles for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
@@ -35,7 +35,7 @@ create table if not exists public.club_staff (
   id uuid primary key default gen_random_uuid(),
   club_name text not null,
   full_name text not null,
-  role text not null check (role in ('scout','head_scout','chief_scout','doctor','team_doctor','medical_director','physiotherapist','head_of_recruitment','other')),
+  role text not null,
   department text,
   profile_url text,
   source_url text not null,
@@ -43,7 +43,7 @@ create table if not exists public.club_staff (
   submitted_by uuid references auth.users(id),
   created_at timestamptz not null default now()
 );
-alter table public.club_staff enable row level security;
+alter table public.club_staff drop constraint if exists club_staff_role_check;\nalter table public.club_staff enable row level security;
 create policy "Verified club staff are publicly viewable" on public.club_staff for select to anon, authenticated using (verified = true);
 create policy "Authenticated users can submit staff for review" on public.club_staff for insert to authenticated with check (auth.uid() = submitted_by and verified = false);
 
