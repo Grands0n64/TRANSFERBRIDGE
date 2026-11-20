@@ -5,7 +5,7 @@ module.exports = async (req, res) => {
   const key = process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return res.status(503).json({ error: "Scout directory is not connected. Configure SUPABASE_URL and SUPABASE_ANON_KEY in Vercel." });
   try {
-    const endpoint = url.replace(/\\/$/, "") + "/rest/v1/public_scout_directory?select=user_id,full_name,country,organisation,territory,positions,age_groups,bio,credentials_url,created_at&order=created_at.desc&limit=300";
+    const endpoint = url.replace(/\/+$/, "") + "/rest/v1/public_scout_directory?select=user_id,full_name,country,organisation,territory,positions,age_groups,bio,credentials_url,created_at&order=created_at.desc&limit=300";
     const response = await fetch(endpoint, { headers: { apikey: key, Authorization: "Bearer " + key } });
     if (!response.ok) {
       const detail = await response.text();
