@@ -251,3 +251,35 @@ join public.profiles p on p.id = sp.user_id
 where sp.verified = true and p.role = 'scout';
 
 grant select on public.public_scout_directory to anon, authenticated;
+
+
+-- Public directory exposes professional identity and source, never private email/phone.
+create or replace view public.public_club_contacts as
+select id, league, club_name, contact_name, job_title, department,
+       contact_url, source_url, source_type, verification_status, notes
+from public.club_contacts;
+
+grant select on public.public_club_contacts to anon, authenticated;
+
+-- Contact release requests are private to the requesting member.
+create table if not exists public.contact_unlock_requests (
+ id uuid primary key default gen_random_uuid(),
+ user_id uuid not null references auth.users(id) on delete cascade,
+ contact_id uuid not null references public.club_contacts(id) on delete cascade,
+ status text not null default 'awaiting_payment'
+   check (status in ('awaiting_payment','paid','under_review','released','declined')),
+ created_at timestamptz not null default now(),
+ unique(user_id, contact_id)
+);
+alter table public.contact_unlock_requests enable row level security;
+drop policy if exists "Members create own contact release requests" on public.contact_unlock_requests;
+drop policy if exists "Members view own contact release requests" on public.contact_unlock_requests;
+create policy "Members create own contact release requests"
+ on public.contact_unlock_requests for insert to authenticated
+ with check (auth.uid() = user_id);
+create policy "Members view own contact release requests"
+ on public.contact_unlock_requests for select to authenticated
+ using (auth.uid() = user_id);
+
+-- Remove broad direct table access; use the limited public view for browsing.
+drop policy if exists "Public can view sourced club contacts" on public.club_contacts;
