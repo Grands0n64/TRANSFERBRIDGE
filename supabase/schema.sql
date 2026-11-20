@@ -64,6 +64,7 @@ create table if not exists public.player_applications (
  created_at timestamptz not null default now(),
  updated_at timestamptz not null default now()
 );
+alter table public.player_applications add column if not exists target_club text;
 alter table public.player_applications enable row level security;
 
 create table if not exists public.scouting_reports (
