@@ -1,79 +1,151 @@
 (() => {
   const $ = s => document.querySelector(s);
-  let client = null, authMode = "signup";
+  let client = null, authMode = "signup", currentUser = null;
   const safe = v => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const note = (selector, message) => { const el=$(selector); if(el) el.textContent=message; };
   async function init() {
     try {
-      const cfg = await fetch("/api/config").then(r => r.json());
-      if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) {
-        client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
-        const { data } = await client.auth.getSession();
-        if (data.session) showSignedIn(data.session.user);
+      const cfg=await fetch("/api/config").then(r=>r.json());
+      if(cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) {
+        client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+        const {data}=await client.auth.getSession();
+        if(data.session) await showSignedIn(data.session.user);
       }
-    } catch {}
-    document.querySelectorAll("#loginBtn").forEach(b => b.addEventListener("click", () => { authMode="login"; $("#modalTitle").textContent="Welcome back."; $("#signupForm button[type=submit]").textContent="Log in ↗"; $("input[name=name]").required=false; $("input[name=country]").required=false; }));
-    ["joinBtn","heroJoin","ctaJoin"].forEach(id => $("#"+id)?.addEventListener("click", () => { authMode="signup"; $("#modalTitle").textContent="Create your profile."; $("#signupForm button[type=submit]").textContent="Create secure account ↗"; $("input[name=name]").required=true; $("input[name=country]").required=true; }));
-    $("#signupForm").addEventListener("submit", async e => {
+    } catch(error) { console.error("TRANSFERBRIDGE connection:",error); }
+    $("#loginBtn")?.addEventListener("click",()=>setAuthMode("login"));
+    ["joinBtn","heroJoin","ctaJoin"].forEach(id=>$("#"+id)?.addEventListener("click",()=>setAuthMode("signup")));
+    $("#signupForm")?.addEventListener("submit",async e=>{
       e.preventDefault(); e.stopImmediatePropagation();
-      if (!client) return authMessage("Live accounts are not connected yet. Add SUPABASE_URL and SUPABASE_ANON_KEY in Vercel, then redeploy.");
-      const data = Object.fromEntries(new FormData(e.currentTarget).entries());
-      const role = (authMode === "login" ? null : $("#accountType").value.toLowerCase());
-      let result;
-      if (authMode === "login") {
-        result = await client.auth.signInWithPassword({email:data.email,password:data.password});
-      } else {
-        result = await client.auth.signUp({email:data.email,password:data.password,options:{data:{full_name:data.name,role}}});
-      }
-      if (result.error) return authMessage(result.error.message);
-      if (result.data.user && result.data.session) {
-        const user = result.data.user;
-        const saved = await client.from("profiles").upsert({id:user.id,full_name:data.name || user.user_metadata?.full_name || user.email,role:role || user.user_metadata?.role || "player",country:data.country || null,profile_url:data.link || null},{onConflict:"id",ignoreDuplicates:true});
-        if (saved.error) return authMessage("Account created, but profile setup needs attention: "+saved.error.message);
-        showSignedIn(user);
-      } else authMessage("Check your email to confirm your account, then log in.");
-    }, true);
-    $("#searchPlayers").addEventListener("click", livePlayerSearch);
-    $("#playerSearch").addEventListener("keydown", e => { if(e.key==="Enter"){e.preventDefault();livePlayerSearch();} });
-    $("#searchStaff").addEventListener("click", liveStaffSearch);
-    $("#staffSubmissionForm")?.addEventListener("submit", submitStaffRecord);
+      if(!client) return authMessage("Accounts are not connected. Check SUPABASE_URL and SUPABASE_ANON_KEY in Vercel and redeploy.");
+      const data=Object.fromEntries(new FormData(e.currentTarget).entries());
+      const role=authMode==="signup"?$("#accountType").value.toLowerCase():null;
+      let result=authMode==="login"
+        ? await client.auth.signInWithPassword({email:data.email,password:data.password})
+        : await client.auth.signUp({email:data.email,password:data.password,options:{data:{full_name:data.name,role}}});
+      if(result.error) return authMessage(result.error.message);
+      if(!result.data.session) return authMessage("Check your email to confirm your account, then log in.");
+      const user=result.data.user;
+      const profile=await client.from("profiles").upsert({
+        id:user.id,full_name:data.name||user.user_metadata?.full_name||user.email,
+        role:role||user.user_metadata?.role||"player",country:data.country||null,
+        profile_url:data.link||null
+      },{onConflict:"id"});
+      if(profile.error) return authMessage("Your account is signed in, but profile setup failed: "+profile.error.message);
+      await showSignedIn(user);
+    });
+    $("#searchPlayers")?.addEventListener("click",livePlayerSearch);
+    $("#playerSearch")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();livePlayerSearch();}});
+    $("#searchStaff")?.addEventListener("click",liveStaffSearch);
+    $("#staffSubmissionForm")?.addEventListener("submit",submitStaffRecord);
+    $("#playerApplicationForm")?.addEventListener("submit",submitPlayerApplication);
+    $("#scoutProfileForm")?.addEventListener("submit",saveScoutProfile);
+    await loadScoutDirectory();
   }
-  function authMessage(msg) { $("#signupSuccess").hidden=false; $("#signupSuccess").textContent=msg; }
-  function showSignedIn(user) {
-    $("#signupForm").hidden=true; $("#signupSuccess").hidden=false;
-    $("#signupSuccess").textContent="Signed in as "+(user.email || "TRANSFERBRIDGE member")+". Your account is connected.";
+  function setAuthMode(mode){
+    authMode=mode;
+    $("#modalTitle").textContent=mode==="login"?"Welcome back.":"Create your profile.";
+    $("#signupForm button[type=submit]").textContent=mode==="login"?"Log in ↗":"Create secure account ↗";
+    $('input[name=name]').required=mode==="signup";
+    $('input[name=country]').required=mode==="signup";
+  }
+  function authMessage(msg){const el=$("#signupSuccess");el.hidden=false;el.textContent=msg;}
+  async function showSignedIn(user){
+    currentUser=user;
+    $("#signupForm").hidden=true;$("#signupSuccess").hidden=false;
+    $("#signupSuccess").textContent="Signed in as "+(user.email||"TRANSFERBRIDGE member")+". Your account is connected.";
     $("#loginBtn").textContent="Account";
+    await loadScoutDirectory();await loadMyApplications();
   }
-  async function livePlayerSearch() {
-    const term=$("#playerSearch").value.trim(), grid=$("#playerGrid"), note=$("#playerDataNote");
-    if(term.length<2){note.textContent="Enter a club name, for example Arsenal or Real Madrid.";return;}
+  async function livePlayerSearch(){
+    const term=$("#playerSearch").value.trim(),grid=$("#playerGrid"),noteEl=$("#playerDataNote");
+    if(term.length<2){noteEl.textContent="Enter a club name, for example Arsenal or Real Madrid.";return;}
     grid.innerHTML="<p>Searching live club squads…</p>";
-    try {
+    try{
       const found=await fetch("/api/teams?search="+encodeURIComponent(term)).then(r=>r.json());
-      if(!found.teams?.length) {grid.innerHTML="<p>No matching clubs found. Check the spelling or provider coverage.</p>";return;}
-      const team=found.teams[0];
-      const data=await fetch("/api/players?team="+team.id).then(r=>r.json());
-      if(!data.players) throw new Error(data.error || "Live squad data unavailable.");
-      const pos=$("#positionFilter").value.toLowerCase();
-      const age=$("#ageFilter").value;
-      const players=data.players.filter(p=>{
-        const position=String(p.position||"").toLowerCase();
-        const a=Number(p.age||0);
-        return (!pos || position.includes(pos)) && (!age || (age==="u18"?a<18:age==="18-23"?a>=18&&a<=23:a>=24));
-      });
-      grid.innerHTML=players.map(p=>'<article class="player-card">'+(p.photo?'<img class="player-avatar" src="'+safe(p.photo)+'" alt="" style="object-fit:cover">':'<span class="player-avatar">'+safe((p.name||"?").split(" ").map(x=>x[0]).join("").slice(0,2))+'</span>')+'<span><h3>'+safe(p.name)+'</h3><p>'+safe(p.position)+' · '+safe(p.age||"Age unavailable")+' · '+safe(team.name)+'</p><span class="tag">'+safe(p.number ? "Squad no. "+p.number : "Squad member")+'</span></span></article>').join("") || "<p>No squad members match those filters.</p>";
-      note.textContent="Source: API-SPORTS live squad endpoint · "+team.name+", "+team.country+". Squad data is not proof of contract status or transfer availability.";
-    } catch(err) {grid.innerHTML="<p>"+safe(err.message)+"</p>";}
+      if(!found.teams?.length){grid.innerHTML="<p>No matching clubs found. Check spelling or provider coverage.</p>";return;}
+      const team=found.teams[0],data=await fetch("/api/players?team="+team.id).then(r=>r.json());
+      if(!data.players)throw new Error(data.error||"Live squad data unavailable.");
+      const pos=$("#positionFilter").value.toLowerCase(),age=$("#ageFilter").value;
+      const players=data.players.filter(p=>{const position=String(p.position||"").toLowerCase(),a=Number(p.age||0);return(!pos||position.includes(pos))&&(!age||(age==="u18"?a<18:age==="18-23"?a>=18&&a<=23:a>=24));});
+      grid.innerHTML=players.map(p=>'<article class="player-card">'+(p.photo?'<img class="player-avatar" src="'+safe(p.photo)+'" alt="" style="object-fit:cover">':'<span class="player-avatar">'+safe((p.name||"?").split(" ").map(x=>x[0]).join("").slice(0,2))+'</span>')+'<span><h3>'+safe(p.name)+'</h3><p>'+safe(p.position)+' · '+safe(p.age||"Age unavailable")+' · '+safe(team.name)+'</p><span class="tag">'+safe(p.number?"Squad no. "+p.number:"Squad member")+'</span></span></article>').join("")||"<p>No squad members match those filters.</p>";
+      noteEl.textContent="Source: API-SPORTS · "+team.name+", "+team.country+". Squad listing does not confirm contract status or availability.";
+    }catch(err){grid.innerHTML="<p>"+safe(err.message)+"</p>";}
   }
-  async function submitStaffRecord(e) {\n    e.preventDefault();\n    const note=$("#staffSubmitNote");\n    if(!client){note.textContent="Staff submissions need the connected Supabase database. Configure the Supabase environment variables and redeploy.";return;}\n    const {data:{user}}=await client.auth.getUser();\n    if(!user){note.textContent="Please create an account or log in before submitting a club professional.";return;}\n    const values=Object.fromEntries(new FormData(e.currentTarget).entries());\n    const result=await client.from("club_staff").insert({...values,submitted_by:user.id,verified:false});\n    if(result.error){note.textContent="Submission could not be saved: "+result.error.message;return;}\n    e.currentTarget.reset(); note.textContent="Submitted successfully. This record is pending verification and will appear publicly only after approval.";\n  }\n  async function liveStaffSearch() {
-    const club=$("#staffClub").value.trim(), grid=$("#staffGrid"), note=$("#staffNote");
-    if(!club){note.textContent="Enter a club name first.";return;}
+  async function liveStaffSearch(){
+    const club=$("#staffClub").value.trim(),grid=$("#staffGrid");
+    if(!club){note("#staffNote","Enter a club name first.");return;}
     grid.innerHTML="<p>Checking verified staff directory…</p>";
-    try {
-      const data=await fetch("/api/club-staff?club="+encodeURIComponent(club)).then(r=>r.json());
-      if(!data.staff) throw new Error(data.error || "Staff directory unavailable.");
-      grid.innerHTML=data.staff.map(p=>'<article class="player-card"><span class="player-avatar">TB</span><span><h3>'+safe(p.full_name)+'</h3><p>'+safe(p.role.replaceAll("_"," "))+' · '+safe(p.club_name)+'</p><a class="tag" href="'+safe(p.source_url)+'" target="_blank" rel="noopener">View source ↗</a></span></article>').join("") || "<p>No verified staff records for this club yet. We will not invent scout or doctor names.</p>";
-      note.textContent=data.note;
-    } catch(err){grid.innerHTML="<p>"+safe(err.message)+"</p>";}
+    try{
+      const response=await fetch("/api/club-staff?club="+encodeURIComponent(club)),data=await response.json();
+      if(!response.ok||!Array.isArray(data.staff))throw new Error(data.error||"Staff directory unavailable.");
+      grid.innerHTML=data.staff.map(p=>'<article class="player-card"><span class="player-avatar">TB</span><span><h3>'+safe(p.full_name)+'</h3><p>'+safe(p.role)+' · '+safe(p.department||"")+' · '+safe(p.club_name)+'</p><a class="tag" href="'+safe(p.source_url)+'" target="_blank" rel="noopener">View source ↗</a></span></article>').join("")||"<p>No verified staff records for this club yet. Submit sourced records for review.</p>";
+      note("#staffNote",data.note||"Only approved, sourced records appear here.");
+    }catch(err){grid.innerHTML="<p>"+safe(err.message)+"</p>";note("#staffNote","The staff search could not complete. Check the database setup and try again.");}
+  }
+  async function submitStaffRecord(e){
+    e.preventDefault();const form=e.currentTarget;
+    if(!client)return note("#staffSubmitNote","Database is not connected. Check Supabase settings and redeploy.");
+    const {data:{user}}=await client.auth.getUser();
+    if(!user)return note("#staffSubmitNote","Please log in before submitting a club professional.");
+    const values=Object.fromEntries(new FormData(form).entries());
+    const result=await client.from("club_staff").insert({...values,submitted_by:user.id,verified:false});
+    if(result.error)return note("#staffSubmitNote","Submission failed: "+result.error.message);
+    form.reset();note("#staffSubmitNote","Submitted. The record is pending TRANSFERBRIDGE verification.");
+  }
+  async function loadScoutDirectory(){
+    const grid=$("#scoutDirectory"),select=$("#applicationScout");
+    if(!grid||!client)return;
+    const {data,error}=await client.from("scout_profiles").select("user_id,organisation,territory,positions,age_groups,bio,verified,profiles(full_name,country)").eq("verified",true).order("created_at",{ascending:false});
+    if(error){grid.innerHTML="<p>Scout directory could not load. Please try again later.</p>";return;}
+    if(!data?.length){grid.innerHTML="<p>No verified scout profiles are listed yet. Scouts can register below; profiles appear after verification.</p>";return;}
+    grid.innerHTML=data.map(s=>'<article class="player-card"><span class="player-avatar">SC</span><span><h3>'+safe(s.profiles?.full_name||"Verified scout")+'</h3><p>'+safe(s.organisation||"Independent scout")+' · '+safe(s.territory||s.profiles?.country||"Territory not listed")+'</p><p>'+safe(s.positions||"Positions not specified")+' · '+safe(s.age_groups||"Age groups not specified")+'</p></span></article>').join("");
+    if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>'+data.map(s=>'<option value="'+safe(s.user_id)+'">'+safe(s.profiles?.full_name||"Scout")+' — '+safe(s.organisation||"Independent")+'</option>').join("");
+  }
+  async function saveScoutProfile(e){
+    e.preventDefault();if(!client)return note("#scoutProfileNote","Database is not connected. Check Supabase settings and redeploy.");
+    const {data:{user}}=await client.auth.getUser();if(!user)return note("#scoutProfileNote","Please log in with your Scout account first.");
+    const {data:profile}=await client.from("profiles").select("role").eq("id",user.id).maybeSingle();
+    if(profile?.role!=="scout")return note("#scoutProfileNote","This feature is for accounts registered as Scout. Create a Scout account or contact support to correct your role.");
+    const values=Object.fromEntries(new FormData(e.currentTarget).entries());
+    const result=await client.from("scout_profiles").upsert({user_id:user.id,...values,verified:false,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    if(result.error)return note("#scoutProfileNote","Could not save scout profile: "+result.error.message);
+    note("#scoutProfileNote","Scout profile submitted. It will appear in the public-to-members directory after TRANSFERBRIDGE verifies it.");
+  }
+  async function submitPlayerApplication(e){
+    e.preventDefault();const form=e.currentTarget;
+    if(!client)return note("#applicationNote","Database is not connected. Check Supabase settings and redeploy.");
+    const {data:{user}}=await client.auth.getUser();if(!user)return note("#applicationNote","Please create an account or log in before submitting.");
+    const {data:profile}=await client.from("profiles").select("role").eq("id",user.id).maybeSingle();
+    if(profile?.role!=="player")return note("#applicationNote","Please use a Player account to submit a player application.");
+    const fd=new FormData(form),values=Object.fromEntries(fd.entries()),appId=crypto.randomUUID();
+    const files=[["cv_file","cv"],["highlight_file","highlights"],["match_file","full-match"]];
+    const paths={};
+    for(const [field,folder] of files){
+      const file=fd.get(field);if(!(file instanceof File)||!file.size)continue;
+      if(file.size>200*1024*1024)return note("#applicationNote",file.name+" is larger than the 200 MB upload limit.");
+      const ext=(file.name.split(".").pop()||"bin").toLowerCase().replace(/[^a-z0-9]/g,"");
+      const path=user.id+"/"+appId+"/"+folder+"."+ext;
+      const upload=await client.storage.from("player-media").upload(path,file,{upsert:false,contentType:file.type||"application/octet-stream"});
+      if(upload.error)return note("#applicationNote","Upload failed for "+file.name+": "+upload.error.message);
+      paths[field]=path;
+    }
+    const result=await client.from("player_applications").insert({
+      id:appId,submitted_by:user.id,scout_id:values.scout_id||null,
+      player_name:values.player_name,date_of_birth:values.date_of_birth||null,
+      nationality:values.nationality,position:values.position,
+      current_club:values.current_club||null,preferred_foot:values.preferred_foot||null,
+      height_cm:values.height_cm?Number(values.height_cm):null,bio:values.bio||null,message:values.message||null,
+      cv_path:paths.cv_file||null,highlight_path:paths.highlight_file||null,match_path:paths.match_file||null
+    });
+    if(result.error)return note("#applicationNote","Files uploaded but application could not be saved: "+result.error.message+". Please contact support before submitting again.");
+    form.reset();note("#applicationNote",values.scout_id?"Application sent to your selected scout.":"Application submitted to TRANSFERBRIDGE for review.");
+    await loadMyApplications();
+  }
+  async function loadMyApplications(){
+    const target=$("#myApplications");if(!target||!client||!currentUser)return;
+    const {data,error}=await client.from("player_applications").select("id,player_name,position,status,created_at,scout_id").eq("submitted_by",currentUser.id).order("created_at",{ascending:false});
+    if(error){target.innerHTML="<p>Could not load applications: "+safe(error.message)+"</p>";return;}
+    target.innerHTML=data?.length?data.map(a=>'<article class="player-card"><span><h3>'+safe(a.player_name)+'</h3><p>'+safe(a.position)+' · '+safe(new Date(a.created_at).toLocaleDateString())+'</p><span class="tag">'+safe(a.status)+'</span></span></article>').join(""):"<p>You have not submitted any player applications yet.</p>";
   }
   init();
 })();
