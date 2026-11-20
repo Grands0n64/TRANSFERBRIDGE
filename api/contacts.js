@@ -1,7 +1,7 @@
 module.exports = async (req, res) => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) return res.status(503).json({ error: "Contact directory requires Supabase configuration." });
+  if (!url || !key) return res.status(503).json({ error: "Contact directory is not connected: add SUPABASE_URL and SUPABASE_ANON_KEY in Vercel, then redeploy." });
   const q = String(req.query.q || "").trim().replace(/[(),.*]/g," ").replace(/\s+/g," ").slice(0,100);
   const league = String(req.query.league || "").trim().slice(0,80);
   const department = String(req.query.department || "").trim().slice(0,80);
@@ -17,11 +17,11 @@ module.exports = async (req, res) => {
     const response = await fetch(url.replace(/\/$/,"")+"/rest/v1/club_contacts?"+params.toString(), {
       headers: { apikey:key, Authorization:"Bearer "+key }
     });
-    if (!response.ok) throw new Error("Supabase contact query failed: "+response.status);
+    if (!response.ok) { const detail = await response.text(); return res.status(response.status).json({ error: "Supabase contact query failed ("+response.status+"): "+detail.slice(0,500) }); }
     const contacts = await response.json();
     res.setHeader("Cache-Control","s-maxage=900, stale-while-revalidate=3600");
     res.status(200).json({contacts, count:contacts.length});
   } catch (error) {
-    res.status(502).json({error:"Unable to load public football contacts."});
+    res.status(502).json({error:"Unable to load public football contacts: "+String(error.message||error).slice(0,300)});
   }
 };
