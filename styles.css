@@ -38,3 +38,12 @@
 .contact-action{padding:9px 10px;border:1px solid #d8b46b55;width:max-content;max-width:100%}
 .contact-missing{font-size:10px;color:#8998aa}
 @media(max-width:650px){.club-detail{padding:17px}.club-contact-grid{grid-template-columns:1fr}.club-detail-head{align-items:flex-start}.club-detail-head .btn{padding:8px 10px}}
+
+/* Locked football contact directory */
+#contactsGrid{display:block;margin-top:22px;border:1px solid #26364b;border-radius:14px;overflow:hidden}
+.contact-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:18px 20px;background:#101f31;border-bottom:1px solid #26364b;cursor:pointer;transition:background .18s}
+.contact-row:nth-child(even){background:#0d1a2b}.contact-row:last-child{border-bottom:0}.contact-row:hover,.contact-row.is-open{background:#17283d}
+.contact-identity{display:flex;align-items:center;gap:14px;min-width:0}.contact-crest{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#1d3047;color:var(--gold);font-size:22px;flex-shrink:0}
+.contact-identity h3{margin:0 0 5px;font:700 15px Manrope,sans-serif}.contact-identity p{margin:0 0 4px;color:#aab7c7;font-size:12px}.contact-identity small{color:#8191a5;font-size:10px}
+.contact-actions{display:flex;align-items:center;gap:18px;color:#aab7c7;font-size:19px}.contact-expanded{grid-column:1/-1;padding:16px 0 0 62px}.contact-expanded[hidden]{display:none}.locked-copy{color:#c5cfdb;font-size:12px;line-height:1.7;margin:0 0 13px}.contact-request:disabled{opacity:.6;cursor:default}
+@media(max-width:650px){.contact-row{padding:14px 12px}.contact-identity{gap:10px}.contact-crest{width:40px;height:40px}.contact-identity h3{font-size:13px}.contact-actions{gap:10px;font-size:17px}.contact-expanded{padding-left:0}}
