@@ -39,6 +39,11 @@
     $("#staffSubmissionForm")?.addEventListener("submit",submitStaffRecord);
     $("#playerApplicationForm")?.addEventListener("submit",submitPlayerApplication);
     $("#scoutProfileForm")?.addEventListener("submit",saveScoutProfile);
+    $("#searchContacts")?.addEventListener("click",loadPublicContacts);
+    $("#contactSearch")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();loadPublicContacts();}});
+    $("#contactLeague")?.addEventListener("change",loadPublicContacts);
+    $("#contactType")?.addEventListener("change",loadPublicContacts);
+    await loadPublicContacts();
     await loadScoutDirectory();
   }
   function setAuthMode(mode){
@@ -91,6 +96,18 @@
     const result=await client.from("club_staff").insert({...values,submitted_by:user.id,verified:false});
     if(result.error)return note("#staffSubmitNote","Submission failed: "+result.error.message);
     form.reset();note("#staffSubmitNote","Submitted. The record is pending TRANSFERBRIDGE verification.");
+  }
+  async function loadPublicContacts(){
+    const grid=$("#contactsGrid");if(!grid)return;
+    const q=$("#contactSearch")?.value.trim()||"",league=$("#contactLeague")?.value||"",type=$("#contactType")?.value||"";
+    grid.innerHTML="<p>Loading sourced contacts…</p>";
+    try{
+      const params=new URLSearchParams();if(q)params.set("q",q);if(league)params.set("league",league);if(type)params.set("department",type);
+      const response=await fetch("/api/contacts?"+params.toString()),body=await response.json();
+      if(!response.ok||!Array.isArray(body.contacts))throw new Error(body.error||"Contact directory unavailable.");
+      grid.innerHTML=body.contacts.map(c=>'<article class="player-card contact-card"><span class="player-avatar">'+safe((c.contact_name||c.club_name||"TB").split(" ").map(x=>x[0]).join("").slice(0,2))+'</span><span><h3>'+safe(c.contact_name||c.club_name)+'</h3><p><b>'+safe(c.club_name)+'</b> · '+safe(c.league)+'</p><p>'+safe(c.job_title||c.department)+'</p>'+(c.email?'<p><a href="mailto:'+safe(c.email)+'">'+safe(c.email)+'</a></p>':'<p class="data-note">No public direct email listed</p>')+(c.phone?'<p><a href="tel:'+safe(c.phone.replace(/[^+0-9]/g,""))+'">'+safe(c.phone)+'</a></p>':'')+(c.contact_url?'<p><a href="'+safe(c.contact_url)+'" target="_blank" rel="noopener">Contact / profile page ↗</a></p>':'')+'<p class="data-note">'+safe(c.verification_status)+" · "+safe(c.notes||"")+'</p><a class="tag" href="'+safe(c.source_url)+'" target="_blank" rel="noopener">Source ↗</a></span></article>').join("")||"<p>No contacts match those filters yet.</p>";
+      note("#contactsNote","Showing "+body.contacts.length+" sourced records. Emails and phone numbers are shown only when the source publishes them.");
+    }catch(error){grid.innerHTML="<p>"+safe(error.message)+"</p>";}
   }
   async function loadScoutDirectory(){
     const grid=$("#scoutDirectory"),select=$("#applicationScout");
