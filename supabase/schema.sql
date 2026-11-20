@@ -140,3 +140,56 @@ create policy "Authenticated users read player media" on storage.objects for sel
 using (bucket_id='player-media' and (storage.foldername(name))[1]=auth.uid()::text);
 
 -- NOTE: review/verification status changes are reserved for trusted admin tooling.
+
+
+-- PUBLIC FOOTBALL CONTACT DIRECTORY
+create table if not exists public.club_contacts (
+ id uuid primary key default gen_random_uuid(),
+ league text not null,
+ club_name text not null,
+ contact_name text,
+ job_title text,
+ department text not null,
+ email text,
+ phone text,
+ contact_url text,
+ source_url text not null,
+ source_type text not null default 'official',
+ verification_status text not null default 'source-listed'
+  check (verification_status in ('official-source','source-listed','needs-review')),
+ notes text,
+ created_at timestamptz not null default now(),
+ unique (club_name, contact_name, department, email)
+);
+alter table public.club_contacts enable row level security;
+drop policy if exists "Public can view sourced club contacts" on public.club_contacts;
+create policy "Public can view sourced club contacts" on public.club_contacts
+ for select to anon, authenticated using (true);
+
+-- Publicly published official contact routes. A general club contact is
+-- deliberately labelled as such; it is not represented as a scout's inbox.
+insert into public.club_contacts
+ (league,club_name,contact_name,job_title,department,email,phone,contact_url,source_url,source_type,verification_status,notes)
+values
+ ('La Liga','Real Madrid','', 'Football trials enquiries','Football trials','pruebasfutbol@corp.realmadrid.com',null,'https://www.realmadrid.com/en-US/the-club/contact','https://www.realmadrid.com/en-US/the-club/contact','official','official-source','Official football trials contact published by Real Madrid. Not a named scout email.'),
+ ('Ligue 1','OGC Nice','', 'Scouting department','Scouting & recruitment','recrutement@ogcnice.com','+33 4 93 71 93 52','https://www.ogcnice.com/en/the-club/contacts.html','https://www.ogcnice.com/en/the-club/contacts.html','official','official-source','Official club page lists this address under Scouting.'),
+ ('Serie A','AS Roma','', 'General club enquiries','Club contact','callcenter@asroma.it','+39 06 8938 6000','https://www.asroma.com/en/club/contact-us','https://www.asroma.com/en/club/contact-us','official','official-source','Official general customer-service contact, not a scouting mailbox. Academy contact: segreteria.sg@asroma.it.'),
+ ('Bundesliga','Bundesliga (league office)','', 'League enquiries','League office','info@bundesliga.de',null,'https://www.bundesliga.com/en/bundesliga/info/contact','https://www.bundesliga.com/en/bundesliga/info/contact','official','official-source','League office contact, not an individual club scouting contact.'),
+ ('Ligue 1','Ligue de Football Professionnel (league office)','', 'League enquiries','League office','hello@ligue1.fr','+33 1 53 65 38 00','https://ligue1.com/en/contact-us','https://ligue1.com/en/contact-us','official','official-source','League organiser contact, not an individual club scouting contact.'),
+ ('Serie A','Lega Serie A (league office)','', 'Presidency secretariat','League office','presidenza@legaseriea.it','+39 02 699101', 'https://www.legaseriea.it/lega-serie-a/sedi-e-contatti','https://www.legaseriea.it/lega-serie-a/sedi-e-contatti','official','official-source','League organiser contact, not an individual club scouting contact.')
+on conflict do nothing;
+
+-- Publicly named scouting professionals from a third-party football contacts
+-- directory. Direct email/phone is not exposed in the public preview; do not guess.
+insert into public.club_contacts
+ (league,club_name,contact_name,job_title,department,email,phone,contact_url,source_url,source_type,verification_status,notes)
+values
+ ('Ligue 1','Paris Saint-Germain','Omar Allel','Scout','Scouting & recruitment',null,null,'https://footycontacts.com/football-contacts/league/ligue-1/scouts','https://footycontacts.com/football-contacts/league/ligue-1/scouts','third-party','source-listed','Named in public scout directory preview; direct contact details not publicly displayed.'),
+ ('Ligue 1','Stade Rennais FC','Philippe Barraud','Head of Youth Scouting','Scouting & recruitment',null,null,'https://footycontacts.com/football-contacts/league/ligue-1/scouts','https://footycontacts.com/football-contacts/league/ligue-1/scouts','third-party','source-listed','Named in public scout directory preview; direct contact details not publicly displayed.'),
+ ('Ligue 1','Stade Rennais FC','Bruno Paterno','Scout','Scouting & recruitment',null,null,'https://footycontacts.com/football-contacts/league/ligue-1/scouts','https://footycontacts.com/football-contacts/league/ligue-1/scouts','third-party','source-listed','Named in public scout directory preview; direct contact details not publicly displayed.'),
+ ('Ligue 1','Stade Rennais FC','Mathieu Coutadeur','Scout','Scouting & recruitment',null,null,'https://footycontacts.com/football-contacts/league/ligue-1/scouts','https://footycontacts.com/football-contacts/league/ligue-1/scouts','third-party','source-listed','Named in public scout directory preview; direct contact details not publicly displayed.'),
+ ('Serie A','AC Milan','Tiago Estêvão','Head of Scouting','Scouting & recruitment',null,null,'https://footycontacts.com/football-contacts/league/serie-a/scouts','https://footycontacts.com/football-contacts/league/serie-a/scouts','third-party','source-listed','Named in public scout directory preview; direct contact details not publicly displayed.'),
+ ('Serie A','FC Internazionale Milano','Corrado Verdelli','Chief Scout','Scouting & recruitment',null,null,'https://footycontacts.com/football-contacts/league/serie-a/scouts','https://footycontacts.com/football-contacts/league/serie-a/scouts','third-party','source-listed','Named in public scout directory preview; direct contact details not publicly displayed.'),
+ ('La Liga','Real Madrid','Juan San Segundo','Scouting','Scouting & recruitment',null,null,'https://www.footycontacts.com/football-contacts/league/spain-primera-division/scouts','https://www.footycontacts.com/football-contacts/league/spain-primera-division/scouts','third-party','source-listed','Named in public scout directory preview; direct contact details not publicly displayed.'),
+ ('La Liga','Atlético de Madrid','Hector Antelo Renones','International Scout','Scouting & recruitment',null,null,'https://www.footycontacts.com/football-contacts/league/spain-primera-division/scouts','https://www.footycontacts.com/football-contacts/league/spain-primera-division/scouts','third-party','source-listed','Named in public scout directory preview; direct contact details not publicly displayed.')
+on conflict do nothing;
