@@ -44,7 +44,7 @@ create table if not exists public.club_staff (
   created_at timestamptz not null default now()
 );
 alter table public.club_staff enable row level security;
-create policy "Verified club staff are public to authenticated users" on public.club_staff for select to authenticated using (verified = true);
+create policy "Verified club staff are publicly viewable" on public.club_staff for select to anon, authenticated using (verified = true);
 create policy "Authenticated users can submit staff for review" on public.club_staff for insert to authenticated with check (auth.uid() = submitted_by and verified = false);
 
 create table if not exists public.scouting_reports (
