@@ -2,7 +2,7 @@ module.exports = async (req, res) => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return res.status(503).json({ error: "Contact directory requires Supabase configuration." });
-  const q = String(req.query.q || "").trim().slice(0,100);
+  const q = String(req.query.q || "").trim().replace(/[(),.*]/g," ").replace(/\s+/g," ").slice(0,100);
   const league = String(req.query.league || "").trim().slice(0,80);
   const department = String(req.query.department || "").trim().slice(0,80);
   try {
