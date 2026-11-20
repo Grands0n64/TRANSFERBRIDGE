@@ -8,19 +8,12 @@ const leagues = [
 {name:"Eredivisie",country:"Netherlands",clubs:["Ajax","AZ Alkmaar","Excelsior","Feyenoord","Fortuna Sittard","Go Ahead Eagles","Groningen","Heerenveen","Heracles Almelo","NAC Breda","NEC Nijmegen","PEC Zwolle","PSV Eindhoven","SC Telstar","Sparta Rotterdam","FC Twente","FC Utrecht","FC Volendam"]},
 {name:"Belgian Pro League",country:"Belgium",clubs:["Anderlecht","Antwerp","Cercle Brugge","Club Brugge","Dender","Genk","Gent","La Louvière","Leuven","Mechelen","OH Leuven","RAAL La Louvière","Sint-Truiden","Sporting Charleroi","Standard Liège","Union Saint-Gilloise","Westerlo","Zulte Waregem"]}
 ];
-const players = [
-{name:"Jordan Mensah",position:"Forward",age:19,country:"Ghana",level:"U21 · Attacking talent",initials:"JM"},
-{name:"Luca Moretti",position:"Midfielder",age:21,country:"Italy",level:"Senior · Central midfielder",initials:"LM"},
-{name:"Daniel Okafor",position:"Defender",age:18,country:"Nigeria",level:"U19 · Centre-back",initials:"DO"},
-{name:"Mateo Silva",position:"Goalkeeper",age:23,country:"Portugal",level:"Senior · Goalkeeper",initials:"MS"},
-{name:"Amir Haddad",position:"Midfielder",age:17,country:"France",level:"U18 · Creative midfielder",initials:"AH"},
-{name:"Noah Williams",position:"Forward",age:24,country:"England",level:"Senior · Wide forward",initials:"NW"}
-];
+const players = [];
 let activeLeague=0;
 const $=s=>document.querySelector(s);
 function renderLeagues(){ $("#leagueTabs").innerHTML=leagues.map((l,i)=>'<button class="league-tab '+(i===activeLeague?'active':'')+'" data-index="'+i+'">'+l.name+'</button>').join(""); document.querySelectorAll(".league-tab").forEach(b=>b.addEventListener("click",()=>{activeLeague=Number(b.dataset.index);renderLeagues();renderClubs()})); }
 function renderClubs(){const league=leagues[activeLeague];const q=$("#clubSearch").value.toLowerCase();const list=league.clubs.filter(c=>c.toLowerCase().includes(q));$("#clubCount").textContent=league.name+" · "+list.length+" clubs shown";$("#clubGrid").innerHTML=list.map(c=>'<article class="club-card"><span class="club-crest">'+c.split(/\s+/).map(x=>x[0]).join("").slice(0,3).toUpperCase()+'</span><span><b>'+c+'</b><small>'+league.country+' · '+league.name+'</small></span></article>').join("")||'<p>No clubs match your search.</p>';}
-function renderPlayers(){const q=$("#playerSearch").value.toLowerCase(),pos=$("#positionFilter").value,age=$("#ageFilter").value;const list=players.filter(p=>(!q||(p.name+" "+p.country+" "+p.position).toLowerCase().includes(q))&&(!pos||p.position===pos)&&(!age||(age==="u18"?p.age<18:age==="18-23"?p.age>=18&&p.age<=23:p.age>=24)));$("#playerGrid").innerHTML=list.map(p=>'<article class="player-card"><span class="player-avatar">'+p.initials+'</span><span><h3>'+p.name+'</h3><p>'+p.position+' · '+p.age+' years · '+p.country+'</p><span class="tag">'+p.level+'</span></span></article>').join("")||'<p>No demo profiles match those filters.</p>';}
+function renderPlayers(){$("#playerGrid").innerHTML='<p>Enter a club name and select “Find real squad” to retrieve current squad data.</p>';}
 function toast(message){const t=$("#toast");t.textContent=message;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}
 function openModal(role){$("#accountType").value=role||"Player";$("#signupSuccess").hidden=true;$("#signupForm").hidden=false;$("#modal").classList.add("open");$("#modal").setAttribute("aria-hidden","false");document.body.style.overflow="hidden"}
 function closeModal(){$("#modal").classList.remove("open");$("#modal").setAttribute("aria-hidden","true");document.body.style.overflow=""}
