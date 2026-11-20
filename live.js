@@ -17,7 +17,7 @@
       e.preventDefault(); e.stopImmediatePropagation();
       if (!client) return authMessage("Live accounts are not connected yet. Add SUPABASE_URL and SUPABASE_ANON_KEY in Vercel, then redeploy.");
       const data = Object.fromEntries(new FormData(e.currentTarget).entries());
-      const role = (authMode === "login" ? (client.auth.getUser ? "player" : "player") : $("#accountType").value.toLowerCase());
+      const role = (authMode === "login" ? null : $("#accountType").value.toLowerCase());
       let result;
       if (authMode === "login") {
         result = await client.auth.signInWithPassword({email:data.email,password:data.password});
@@ -27,7 +27,7 @@
       if (result.error) return authMessage(result.error.message);
       if (result.data.user && result.data.session) {
         const user = result.data.user;
-        const saved = await client.from("profiles").upsert({id:user.id,full_name:data.name || user.user_metadata?.full_name || user.email,role,country:data.country || null,profile_url:data.link || null},{onConflict:"id"});
+        const saved = await client.from("profiles").upsert({id:user.id,full_name:data.name || user.user_metadata?.full_name || user.email,role:role || user.user_metadata?.role || "player",country:data.country || null,profile_url:data.link || null},{onConflict:"id",ignoreDuplicates:true});
         if (saved.error) return authMessage("Account created, but profile setup needs attention: "+saved.error.message);
         showSignedIn(user);
       } else authMessage("Check your email to confirm your account, then log in.");
@@ -35,6 +35,7 @@
     $("#searchPlayers").addEventListener("click", livePlayerSearch);
     $("#playerSearch").addEventListener("keydown", e => { if(e.key==="Enter"){e.preventDefault();livePlayerSearch();} });
     $("#searchStaff").addEventListener("click", liveStaffSearch);
+    $("#staffSubmissionForm")?.addEventListener("submit", submitStaffRecord);
   }
   function authMessage(msg) { $("#signupSuccess").hidden=false; $("#signupSuccess").textContent=msg; }
   function showSignedIn(user) {
@@ -63,7 +64,7 @@
       note.textContent="Source: API-SPORTS live squad endpoint · "+team.name+", "+team.country+". Squad data is not proof of contract status or transfer availability.";
     } catch(err) {grid.innerHTML="<p>"+safe(err.message)+"</p>";}
   }
-  async function liveStaffSearch() {
+  async function submitStaffRecord(e) {\n    e.preventDefault();\n    const note=$("#staffSubmitNote");\n    if(!client){note.textContent="Staff submissions need the connected Supabase database. Configure the Supabase environment variables and redeploy.";return;}\n    const {data:{user}}=await client.auth.getUser();\n    if(!user){note.textContent="Please create an account or log in before submitting a club professional.";return;}\n    const values=Object.fromEntries(new FormData(e.currentTarget).entries());\n    const result=await client.from("club_staff").insert({...values,submitted_by:user.id,verified:false});\n    if(result.error){note.textContent="Submission could not be saved: "+result.error.message;return;}\n    e.currentTarget.reset(); note.textContent="Submitted successfully. This record is pending verification and will appear publicly only after approval.";\n  }\n  async function liveStaffSearch() {
     const club=$("#staffClub").value.trim(), grid=$("#staffGrid"), note=$("#staffNote");
     if(!club){note.textContent="Enter a club name first.";return;}
     grid.innerHTML="<p>Checking verified staff directory…</p>";
