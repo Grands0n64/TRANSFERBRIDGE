@@ -100,13 +100,27 @@
   async function loadPublicContacts(){
     const grid=$("#contactsGrid");if(!grid)return;
     const q=$("#contactSearch")?.value.trim()||"",league=$("#contactLeague")?.value||"",type=$("#contactType")?.value||"";
-    grid.innerHTML="<p>Loading sourced contacts…</p>";
+    grid.innerHTML="<p>Loading football contacts…</p>";
     try{
       const params=new URLSearchParams();if(q)params.set("q",q);if(league)params.set("league",league);if(type)params.set("department",type);
       const response=await fetch("/api/contacts?"+params.toString()),body=await response.json();
       if(!response.ok||!Array.isArray(body.contacts))throw new Error(body.error||"Contact directory unavailable.");
-      grid.innerHTML=body.contacts.map(c=>'<article class="player-card contact-card"><span class="player-avatar">'+safe((c.contact_name||c.club_name||"TB").split(" ").map(x=>x[0]).join("").slice(0,2))+'</span><span><h3>'+safe(c.contact_name||c.club_name)+'</h3><p><b>'+safe(c.club_name)+'</b> · '+safe(c.league)+'</p><p>'+safe(c.job_title||c.department)+'</p>'+(c.email?'<p><a href="mailto:'+safe(c.email)+'">'+safe(c.email)+'</a></p>':'<p class="data-note">No public direct email listed</p>')+(c.phone?'<p><a href="tel:'+safe(c.phone.replace(/[^+0-9]/g,""))+'">'+safe(c.phone)+'</a></p>':'')+(c.contact_url?'<p><a href="'+safe(c.contact_url)+'" target="_blank" rel="noopener">Contact / profile page ↗</a></p>':'')+'<p class="data-note">'+safe(c.verification_status)+" · "+safe(c.notes||"")+'</p><a class="tag" href="'+safe(c.source_url)+'" target="_blank" rel="noopener">Source ↗</a></span></article>').join("")||"<p>No contacts match those filters yet.</p>";
-      note("#contactsNote","Showing "+body.contacts.length+" sourced records. Emails and phone numbers are shown only when the source publishes them.");
+      grid.innerHTML=body.contacts.map(c=>'<article class="contact-row" data-contact-id="'+safe(c.id)+'"><div class="contact-identity"><span class="contact-crest">⚽</span><div><h3>'+safe(c.contact_name||c.club_name)+'</h3><p>'+safe(c.job_title||c.department)+' · '+safe(c.club_name)+'</p><small>'+safe(c.league)+' · '+safe(c.verification_status)+'</small></div></div><div class="contact-actions"><span class="contact-mail-icon" title="Email address locked">✉</span><span class="contact-lock" aria-label="Locked">🔒</span></div><div class="contact-expanded" hidden><p class="locked-copy">Direct email and telephone are protected. TRANSFERBRIDGE can request the contact details on your behalf.</p><button class="btn btn-gold contact-request" type="button" data-id="'+safe(c.id)+'">Request contact release ↗</button><p class="data-note">'+(c.contact_url?'<a href="'+safe(c.contact_url)+'" target="_blank" rel="noopener">Official contact page ↗</a>':'Contact source is recorded by TRANSFERBRIDGE')+'</p><p class="data-note contact-request-note"></p></div></article>').join("")||"<p>No public contact records match those filters yet.</p>";
+      grid.querySelectorAll(".contact-row").forEach(row=>row.addEventListener("click",e=>{
+        if(e.target.closest("a,button"))return;
+        const panel=row.querySelector(".contact-expanded");panel.hidden=!panel.hidden;row.classList.toggle("is-open",!panel.hidden);
+      }));
+      grid.querySelectorAll(".contact-request").forEach(btn=>btn.addEventListener("click",async e=>{
+        e.stopPropagation();
+        const row=btn.closest(".contact-row"),out=row.querySelector(".contact-request-note");
+        if(!client){out.textContent="Contact requests require the TRANSFERBRIDGE account database to be connected.";return;}
+        const {data:{user}}=await client.auth.getUser();
+        if(!user){out.textContent="Please log in or create a TRANSFERBRIDGE account before requesting this contact.";return;}
+        const result=await client.from("contact_unlock_requests").insert({user_id:user.id,contact_id:btn.dataset.id,status:"awaiting_payment"});
+        if(result.error){out.textContent="Request could not be saved: "+result.error.message;return;}
+        btn.disabled=true;out.textContent="Request saved. TRANSFERBRIDGE will contact you about availability and payment before releasing any protected details.";
+      }));
+      note("#contactsNote","Showing "+body.contacts.length+" contact records. Direct email addresses and phone numbers are locked; click a contact to request release.");
     }catch(error){grid.innerHTML="<p>"+safe(error.message)+"</p>";}
   }
   async function loadScoutDirectory(){
