@@ -283,3 +283,42 @@ create policy "Members view own contact release requests"
 
 -- Remove broad direct table access; use the limited public view for browsing.
 drop policy if exists "Public can view sourced club contacts" on public.club_contacts;
+
+
+-- Public contact enquiry form: collects customer details for TRANSFERBRIDGE follow-up.
+create table if not exists public.contact_unlock_requests (
+ id uuid primary key default gen_random_uuid(),
+ user_id uuid references auth.users(id) on delete set null,
+ contact_id uuid not null references public.club_contacts(id) on delete cascade,
+ requester_name text not null,
+ requester_email text not null,
+ requester_phone text not null,
+ country text not null,
+ reason text not null,
+ status text not null default 'new'
+   check (status in ('new','contacted','awaiting_payment','paid','under_review','released','declined')),
+ created_at timestamptz not null default now()
+);
+alter table public.contact_unlock_requests
+ add column if not exists requester_name text,
+ add column if not exists requester_email text,
+ add column if not exists requester_phone text,
+ add column if not exists country text,
+ add column if not exists reason text;
+alter table public.contact_unlock_requests alter column user_id drop not null;
+alter table public.contact_unlock_requests enable row level security;
+drop policy if exists "Public can submit contact enquiries" on public.contact_unlock_requests;
+create policy "Public can submit contact enquiries"
+ on public.contact_unlock_requests for insert to anon, authenticated
+ with check (
+  length(trim(requester_name)) between 2 and 120
+  and requester_email like '%@%.%'
+  and length(trim(requester_phone)) between 6 and 40
+  and length(trim(country)) between 2 and 80
+  and length(trim(reason)) between 5 and 1000
+ );
+drop policy if exists "Members create own contact release requests" on public.contact_unlock_requests;
+drop policy if exists "Members view own contact release requests" on public.contact_unlock_requests;
+create policy "Members view own contact requests"
+ on public.contact_unlock_requests for select to authenticated
+ using (auth.uid() = user_id);
