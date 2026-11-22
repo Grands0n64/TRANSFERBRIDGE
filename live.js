@@ -36,7 +36,7 @@
     $("#searchPlayers")?.addEventListener("click",livePlayerSearch);
     $("#playerSearch")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();livePlayerSearch();}});
     $("#searchStaff")?.addEventListener("click",liveStaffSearch);
-    await loadDirectoryCoverage();
+
     $("#staffSubmissionForm")?.addEventListener("submit",submitStaffRecord);
     $("#playerApplicationForm")?.addEventListener("submit",submitPlayerApplication);
     $("#scoutProfileForm")?.addEventListener("submit",saveScoutProfile);
@@ -63,15 +63,6 @@
     await loadScoutDirectory();await loadMyApplications();await loadScoutInbox();
   }
 
-  async function loadDirectoryCoverage(){
-    const target=$("#directoryCoverage");if(!target)return;
-    try{
-      const response=await fetch("/api/club-directory-coverage"),data=await response.json();
-      if(!response.ok)throw new Error(data.error||"Coverage report unavailable.");
-      const rows=(data.leagues||[]).map(l=>'<div class="coverage-row"><div><b>'+safe(l.league)+'</b><small>'+l.clubs_with_named_contacts+' / '+l.target_clubs+' clubs with named contacts · '+l.named_contact_records+' people listed</small></div><span class="tag">'+Math.round(l.clubs_with_named_contacts/Math.max(1,l.target_clubs)*100)+'%</span></div>').join("");
-      target.innerHTML='<div class="coverage-summary"><strong>'+safe(data.clubs_with_any_staff_or_contact_record)+' / '+safe(data.target_clubs)+'</strong><span>clubs with at least one staff/contact record</span><p>'+safe(data.named_contact_records)+' named contact records · '+safe(data.verified_staff_records)+' independently verified staff submissions · '+safe(data.clubs_without_any_staff_or_contact_record)+' clubs still without a record</p></div><div class="coverage-list">'+rows+'</div><p class="data-note">'+safe(data.warning)+'</p>';
-    }catch(error){target.innerHTML='<p class="data-note">'+safe(error.message)+'</p>';}
-  }
   async function livePlayerSearch(){
     const term=$("#playerSearch").value.trim(),grid=$("#playerGrid"),noteEl=$("#playerDataNote");
     if(term.length<2){noteEl.textContent="Enter a club name, for example Arsenal or Real Madrid.";return;}
