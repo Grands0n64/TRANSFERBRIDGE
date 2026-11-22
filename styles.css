@@ -51,3 +51,103 @@
 .contact-request-form{display:grid;gap:11px;max-width:560px;padding-top:5px}.contact-request-form h4{margin:0 0 3px;color:var(--text,#fff);font-size:15px}.contact-request-form label{display:grid;gap:5px;color:#b8c5d5;font-size:12px}.contact-request-form input,.contact-request-form textarea{width:100%;box-sizing:border-box;border:1px solid #35465c;border-radius:8px;background:#0b1726;color:#fff;padding:11px;font:inherit;font-size:13px}.contact-request-form input:focus,.contact-request-form textarea:focus{outline:2px solid #d9ad4c;outline-offset:1px}.contact-request-form button{justify-self:start}.request-result{color:#c5cfdb;font-size:12px;line-height:1.6}
 
 .scout-directory-card{align-items:flex-start}.scout-card-content{min-width:0;display:block}.scout-card-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:15px}.scout-card-actions .btn{font-size:11px;padding:11px 14px}@media(max-width:600px){.scout-card-actions{display:grid;grid-template-columns:1fr}.scout-card-actions .btn{width:100%}}
+
+
+/* TRANSFERBRIDGE visual refresh — clean white and football green */
+:root{
+ --bg:#ffffff;--panel:#ffffff;--panel2:#f4faf6;--line:#dce9e0;
+ --text:#17251c;--muted:#637468;--gold:#087a43;--gold2:#056536;--green:#16a05a;
+}
+html,body{background:#fff;color:#17251c}
+body{background:#fff;color:#17251c}
+.topbar{background:rgba(255,255,255,.96);border-bottom:1px solid #e2ece5;box-shadow:0 3px 18px #12351b08}
+.brand{color:#14271b}.brand-mark{border-color:#087a43;color:#087a43}
+.brand small{color:#718176}.gold{color:#087a43}
+nav{color:#405448}nav a:hover,.text-link:hover{color:#087a43}
+.btn-gold{background:#087a43;color:#fff;border-color:#087a43}
+.btn-gold:hover{background:#056536;color:#fff}
+.btn-quiet{border-color:#d4e2d8;color:#263b2d;background:#fff}
+.menu-btn{color:#173522}
+.hero{background:linear-gradient(110deg,#f7fcf8 0%,#edf8f0 52%,#e2f3e8 100%)}
+.eyebrow{color:#087a43}
+.pulse,.live-dot{background:#16a05a;box-shadow:0 0 10px #16a05a55}
+.hero h1,h2{color:#17251c}
+.hero h1 em,h2 em{color:#087a43}
+.hero-lead,.section-head>p{color:#607267}
+.hero-proof{color:#617469}
+.avatar-stack i{border-color:#f1f8f3;background:#dceee2}
+.visual-glow{background:#16a05a18}
+.pitch{background:linear-gradient(135deg,#0c7543,#0c603b);border-color:#ffffff8c;box-shadow:0 25px 65px #155d3430}
+.pitch:before,.mid,.pitch-circle,.pitch-box{border-color:#d5f3df88}
+.route{border-top-color:#b8f0c9}
+.pitch-dot{background:#fff}
+.pin{background:#fff;color:#087a43;box-shadow:0 5px 18px #003d1e40}
+.floating-card{background:#fff;border:1px solid #dce9e0;box-shadow:0 18px 45px #16492a18;color:#17251c}
+.mini-label,.card-foot{color:#087a43}.card-foot{color:#718176}
+.card-bottom small{color:#718176}
+.hero-index{color:#087a43}.hero-index span{color:#75867a}
+.metrics{background:#fff;border-color:#e1ebe4}
+.metrics div{border-color:#e1ebe4}
+.metrics strong{color:#087a43}.metrics span{color:#66776b}
+.section{background:#fff}
+.section-head h2,.workflow h2,.cta h2{color:#17251c}
+.search-panel{background:#fff;border-color:#dce9e0;box-shadow:0 8px 28px #12351b08}
+.search-title{color:#263b2d}
+.live-tag{color:#087a43;border-color:#087a4340;background:#f2faf5}
+.filters label,.modal label{color:#52665a}
+.filters input,.filters select,.club-toolbar input,.modal input,.modal select,
+.application-fields textarea,.contact-request-form input,.contact-request-form textarea{
+ background:#fff;border:1px solid #d2e0d6;color:#17251c
+}
+.filters input::placeholder,.club-toolbar input::placeholder,.modal input::placeholder{color:#8a9a8e}
+.filters input:focus,.filters select:focus,.club-toolbar input:focus,.modal input:focus,.modal select:focus{border-color:#087a43}
+.player-card{background:#fff;border-color:#dce9e0;color:#17251c}
+.player-card h3{color:#17251c}.player-card p{color:#6c7d71}
+.player-avatar{background:#e6f4ea;color:#087a43}
+.player-card .tag{color:#087a43;border-color:#087a4350}
+.club-section{background:#f5faf6;border-color:#e2ece5}
+.league-tab{background:#fff;border-color:#d4e2d8;color:#506357}
+.league-tab.active,.league-tab:hover{background:#087a43;color:#fff;border-color:#087a43}
+.club-toolbar{color:#607267}
+.club-card{background:#fff;border-color:#dce9e0;color:#17251c}
+.club-card b{color:#1a2b20}.club-card small{color:#718176}
+.club-crest{background:#e7f4eb;color:#087a43}
+.data-note{color:#78897d}
+.role-grid{border-color:#dce9e0}
+.role-grid article{border-color:#dce9e0}
+.role-number{color:#829186}.role-icon{color:#087a43}
+.role-grid h3{color:#17251c}.role-grid p{color:#66776b}
+.role-link{color:#087a43}
+.cta{background:linear-gradient(110deg,#075f37,#0a8048);border-color:#0a8048;color:#fff}
+.cta h2,.cta .eyebrow{color:#fff}.cta h2 em{color:#c8f2d5}
+.cta p{color:#e0f1e5}
+footer{background:#fff;border-color:#e2ece5;color:#718176}
+.modal-backdrop{background:#14251bc9}
+.modal{background:#fff;border-color:#dce9e0;color:#17251c;box-shadow:0 25px 80px #001b0c30}
+.modal h2{color:#17251c}.modal-intro{color:#68796d}
+.modal-close{color:#415449}
+.form-disclaimer,.optional{color:#7b8a7f}
+.success-box{background:#eff9f2;border-color:#b9dfc5;color:#17633a}
+.toast{background:#087a43;color:#fff}
+nav.open{background:#fff;border-color:#e2ece5}
+.club-detail{background:#fff;border-color:#b8d9c2}
+.club-detail-head h3{color:#17251c}.club-detail-head p{color:#68796d}
+.club-detail>h4{color:#17251c}
+.club-contact-card{background:#fff;border-color:#dce9e0}
+.club-contact-card h4{color:#17251c}.club-contact-card>p{color:#68796d}
+.contact-type,.contact-status{color:#087a43;border-color:#087a4350}
+.contact-status{color:#16834a;border-color:#16834a55}
+.contact-line,.contact-action,.source-link{color:#087a43}
+.contact-action{border-color:#087a4350}
+.contact-missing{color:#7b8a7f}
+#contactsGrid{border-color:#dce9e0}
+.contact-row,.contact-row:nth-child(even){background:#fff;border-color:#e2ece5}
+.contact-row:hover,.contact-row.is-open{background:#f1f8f3}
+.contact-crest{background:#e7f4eb;color:#087a43}
+.contact-identity h3{color:#17251c}.contact-identity p{color:#5e7064}.contact-identity small{color:#839187}
+.contact-actions{color:#607267}.locked-copy,.request-result{color:#596c60}
+.contact-request-form h4{color:#17251c}
+.contact-request-form label{color:#52665a}
+.contact-request-form input:focus,.contact-request-form textarea:focus{outline-color:#087a43}
+.scout-directory-card{background:#fff}
+@media(max-width:650px){nav{background:#fff}}
