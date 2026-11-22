@@ -129,36 +129,45 @@
     }catch(error){grid.innerHTML="<p>"+safe(error.message)+"</p>";}
   }
   async function loadScoutDirectory(){
-    const grid=$("#scoutDirectory"),select=$("#applicationScout");
-    if(!grid)return;
-    grid.innerHTML="<p>Loading verified scout profiles…</p>";
+    const grid=$("#scoutDirectory"),select=$("#applicationScout");if(!grid)return;
+    grid.innerHTML="<p>Loading professional scouts and public club scouting contacts…</p>";
     try{
-      const response=await fetch("/api/scouts");
-      const body=await response.json();
+      const response=await fetch("/api/scouts"),body=await response.json();
       if(!response.ok||!Array.isArray(body.scouts))throw new Error(body.error||"Scout directory unavailable.");
-      const data=body.scouts;
-      let ownPending=null;
-      if(currentUser){
-        const {data:myRole}=await client.from("profiles").select("role,full_name,country").eq("id",currentUser.id).maybeSingle();
-        if(myRole?.role==="scout"){
-          const {data:mine}=await client.from("scout_profiles").select("user_id,organisation,territory,positions,age_groups,bio,credentials_url,created_at,verified").eq("user_id",currentUser.id).maybeSingle();
-          if(mine&&!mine.verified&&!data.some(item=>item.user_id===currentUser.id)) ownPending={...mine,full_name:myRole.full_name,country:myRole.country};
+      const data=body.scouts,registered=data.filter(s=>s.kind==="registered"),external=data.filter(s=>s.kind==="external");
+      let unlocked={};
+      if(client&&currentUser){
+        const {data:sessionData}=await client.auth.getSession(),token=sessionData?.session?.access_token;
+        if(token){
+          const access=await fetch("/api/scout-unlock",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action:"status"})});
+          if(access.ok){const result=await access.json();(result.unlocked||[]).forEach(x=>{unlocked[x.id]=x.email;});}
         }
       }
-      if(!data.length&&!ownPending){
-        grid.innerHTML="<p>No registered scout profiles have been verified yet. See Football Contacts for publicly listed club scouting contacts, including scouts who have not joined TRANSFERBRIDGE.</p>";
-        if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>';
-        return;
-      }
-      const verifiedCards=data.map(s=>'<article class="player-card scout-directory-card"><span class="player-avatar">SC</span><span class="scout-card-content"><h3>'+safe(s.full_name||"Verified scout")+'</h3><p>'+safe(s.organisation||"Independent scout")+' · '+safe(s.territory||s.country||"Territory not listed")+'</p><p>'+safe(s.positions||"Positions not specified")+' · '+safe(s.age_groups||"Age groups not specified")+'</p><p>'+safe(s.bio||"")+'</p><span class="tag">TRANSFERBRIDGE verified profile</span><div class="scout-card-actions"><button class="btn btn-gold scout-submit-btn" type="button" data-scout="'+safe(s.user_id)+'">Submit My Player Profile</button><button class="btn btn-quiet scout-unlock-btn" type="button" data-scout="'+safe(s.user_id)+'">Unlock Scout Email 🔒</button></div></span></article>').join("");
-      const pendingCard=ownPending?'<article class="player-card scout-directory-card"><span class="player-avatar">SC</span><span class="scout-card-content"><h3>'+safe(ownPending.full_name||"Your scout profile")+'</h3><p>'+safe(ownPending.organisation||"Independent scout")+' · '+safe(ownPending.territory||ownPending.country||"Territory not listed")+'</p><p>'+safe(ownPending.positions||"Positions not specified")+' · '+safe(ownPending.age_groups||"Age groups not specified")+'</p><p>'+safe(ownPending.bio||"")+'</p><span class="tag">Your profile · pending verification (visible only to you)</span></span></article>':"";
-      grid.innerHTML=verifiedCards+pendingCard;
-      grid.querySelectorAll(".scout-submit-btn").forEach(btn=>btn.addEventListener("click",()=>{const select=$("#applicationScout");if(select)select.value=btn.dataset.scout;$("#player-application")?.scrollIntoView({behavior:"smooth"});note("#applicationNote","Selected scout. Complete your football CV and upload your footage below, then submit to TRANSFERBRIDGE.");}));
-      grid.querySelectorAll(".scout-unlock-btn").forEach(btn=>btn.addEventListener("click",()=>{$("#contacts")?.scrollIntoView({behavior:"smooth"});note("#contactsNote","Search for this scout in Football Contacts and submit the contact request form. Email release requires payment and permission to disclose.");}));
-      if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>'+data.map(s=>'<option value="'+safe(s.user_id)+'">'+safe(s.full_name||"Scout")+' — '+safe(s.organisation||"Independent")+'</option>').join("");
-    }catch(error){
-      grid.innerHTML="<p>Scout directory could not load: "+safe(error.message)+"</p>";
-    }
+      const registeredCards=registered.map(s=>'<article class="player-card scout-directory-card"><span class="player-avatar">SC</span><span class="scout-card-content"><h3>'+safe(s.full_name||"Verified scout")+'</h3><p>'+safe(s.organisation||"Independent scout")+' · '+safe(s.territory||s.country||"Territory not listed")+'</p><p>'+safe(s.positions||"Positions not specified")+' · '+safe(s.age_groups||"Age groups not specified")+'</p><p>'+safe(s.bio||"")+'</p><span class="tag">TRANSFERBRIDGE verified member</span><div class="scout-card-actions"><button class="btn btn-gold scout-submit-btn" type="button" data-scout="'+safe(s.user_id)+'">Submit My Player Profile</button></div></span></article>').join("");
+      const externalCards=external.map(s=>{
+        const email=unlocked[s.contact_id];
+        const lock=s.has_email?(email?'<p class="unlocked-email">✉ <a href="mailto:'+safe(email)+'">'+safe(email)+'</a> <span class="tag">Unlocked</span></p>':'<button class="btn btn-gold scout-pay-unlock" type="button" data-contact="'+safe(s.contact_id)+'">Unlock scout email 🔒</button>'):'<span class="tag">No public email available</span>';
+        return '<article class="player-card scout-directory-card"><span class="player-avatar">SC</span><span class="scout-card-content"><h3>'+safe(s.full_name||"Club scouting professional")+'</h3><p>'+safe(s.organisation||"Football club")+' · '+safe(s.territory||"")+'</p><p>'+safe(s.positions||"Scouting / recruitment")+'</p><span class="tag">'+safe(s.verification_status||"Source listed")+' · External professional</span><p><a class="source-link" href="'+safe(s.source_url||s.credentials_url||"#")+'" target="_blank" rel="noopener">View public source ↗</a></p><div class="scout-card-actions">'+lock+'</div></span></article>';
+      }).join("");
+      const empty='<p>No publicly sourced club scouting professionals are available in the directory yet.</p>';
+      grid.innerHTML=(registeredCards+externalCards)||empty;
+      grid.querySelectorAll(".scout-submit-btn").forEach(btn=>btn.addEventListener("click",()=>{if(select)select.value=btn.dataset.scout;$("#player-application")?.scrollIntoView({behavior:"smooth"});note("#applicationNote","Selected scout. Complete the player CV and footage below.");}));
+      grid.querySelectorAll(".scout-pay-unlock").forEach(btn=>btn.addEventListener("click",async()=>{
+        if(!client){setAuthMode("login");$("#signupModal")?.classList.add("open");return note("#scoutDirectoryNote","Log in or create a Player account before unlocking a scout email.");}
+        const {data:sessionData}=await client.auth.getSession(),token=sessionData?.session?.access_token;
+        if(!token){setAuthMode("login");$("#signupModal")?.classList.add("open");return;}
+        btn.disabled=true;btn.textContent="Preparing secure payment…";
+        try{
+          const pay=await fetch("/api/scout-unlock",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action:"initialize",contact_id:btn.dataset.contact})});
+          const result=await pay.json();if(!pay.ok)throw new Error(result.error||"Payment could not be started.");
+          window.location.href=result.authorization_url;
+        }catch(error){btn.disabled=false;btn.textContent="Unlock scout email 🔒";note("#scoutDirectoryNote",error.message);}
+      }));
+      if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>'+registered.map(s=>'<option value="'+safe(s.user_id)+'">'+safe(s.full_name||"Scout")+' — '+safe(s.organisation||"Independent")+'</option>').join("");
+      const params=new URLSearchParams(location.search);
+      if(params.get("unlock")==="success")note("#scoutDirectoryNote","Payment confirmed. Your unlocked scout email is now displayed in the directory, and the scout has been notified by email when notification delivery is configured.");
+      if(params.has("unlock")){params.delete("unlock");history.replaceState({}, "", location.pathname+location.hash);}
+    }catch(error){grid.innerHTML="<p>"+safe(error.message)+"</p>";}
   }
   async function saveScoutProfile(e){
     e.preventDefault();if(!client)return note("#scoutProfileNote","Database is not connected. Check Supabase settings and redeploy.");
