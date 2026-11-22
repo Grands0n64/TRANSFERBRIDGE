@@ -164,10 +164,10 @@ create table if not exists public.club_contacts (
  unique (club_name, contact_name, department, email)
 );
 alter table public.club_contacts enable row level security;
+-- Keep personal email/phone fields private. Public reads go through the
+-- allow-listed public_club_contacts view created below.
 drop policy if exists "Public can view sourced club contacts" on public.club_contacts;
-create policy "Public can view sourced club contacts" on public.club_contacts
- for select to anon, authenticated using (true);
- grant select on public.club_contacts to anon, authenticated;
+revoke all on public.club_contacts from anon, authenticated;
 
 -- Publicly published official contact routes. A general club contact is
 -- deliberately labelled as such; it is not represented as a scout's inbox.
