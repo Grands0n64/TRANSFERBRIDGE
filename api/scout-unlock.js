@@ -9,7 +9,7 @@ module.exports = async (req,res) => {
   if(!process.env.RESEND_API_KEY||!process.env.TRANSFERBRIDGE_FROM_EMAIL)return false;
   const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({
    from:process.env.TRANSFERBRIDGE_FROM_EMAIL,to:[email],subject:"A player has unlocked your scouting contact on TRANSFERBRIDGE",
-   html:"<p>Hello "+String(scoutName||"Scout").replace(/[&<>"]/g,"")+",</p><p>A TRANSFERBRIDGE member has completed payment to unlock your publicly listed scouting contact for "+String(club||"your club").replace(/[&<>"]/g,"")+".</p><p>The member may now contact you using the publicly listed email address associated with your professional listing.</p><p>Player/member account: "+String(playerEmail||"").replace(/[&<>"]/g,"")+"</p><p>— TRANSFERBRIDGE</p>"
+   html:"<p>Hello "+String(scoutName||"Scout").replace(/[&<>"]/g,"")+",</p><p>A TRANSFERBRIDGE member has completed payment to unlock your publicly listed scouting contact for "+String(club||"your club").replace(/[&<>"]/g,"")+".</p><p>The member may now contact you using the publicly listed email address associated with your professional listing.</p><p>— TRANSFERBRIDGE</p>"
   })});
   return response.ok;
  }
@@ -35,10 +35,10 @@ module.exports = async (req,res) => {
   if(!auth.ok)return res.status(401).json({error:"Your login session is invalid. Please log in again."});
   const user=await auth.json(),contactId=String(req.body.contact_id||"");
   if(!contactId)return res.status(400).json({error:"Select a scout contact first."});
-  const contactRes=await fetch(base+"/rest/v1/club_contacts?select=id,contact_name,club_name,department,email&id=eq."+encodeURIComponent(contactId),{headers:dbHeaders});
+  const contactRes=await fetch(base+"/rest/v1/club_contacts?select=id,contact_name,club_name,department,job_title,email&id=eq."+encodeURIComponent(contactId),{headers:dbHeaders});
   if(!contactRes.ok)return res.status(502).json({error:"Could not load scout contact."});
   const contacts=await contactRes.json(),contact=contacts[0];
-  if(!contact||!contact.email||!/scout|scouting|recruit|talent identification|player identification/i.test(String(contact.department||"")))return res.status(404).json({error:"This scout does not have a publicly sourced email available to unlock."});
+  if(!contact||!contact.email||!/scout|scouting|recruit|talent identification|player identification/i.test(String(contact.department||"")+" "+String(contact.job_title||"")))return res.status(404).json({error:"This scout does not have a publicly sourced email available to unlock."});
   const existingRes=await fetch(base+"/rest/v1/scout_contact_unlocks?select=id,status&user_id=eq."+user.id+"&contact_id=eq."+contactId,{headers:dbHeaders});
   const existing=existingRes.ok?(await existingRes.json())[0]:null;
   if(existing?.status==="paid")return res.status(409).json({error:"You have already unlocked this scout. Refresh the directory to view the email."});
