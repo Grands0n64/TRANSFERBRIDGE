@@ -24,6 +24,6 @@ module.exports = async (req,res) => {
   const registeredKeys=new Set(registered.map(s=>(s.full_name+"|"+(s.organisation||"")).toLowerCase()));
   const combined=registered.concat(external.filter(s=>!registeredKeys.has((s.full_name+"|"+s.organisation).toLowerCase())));
   res.setHeader("Cache-Control","no-store, max-age=0");
-  return res.status(200).json({scouts:combined,count:combined.length,registered_count:registered.length,external_count:external.length});
+  return res.status(200).json({scouts:combined,count:combined.length,registered_count:registered.length,external_count:external.length,unlock_price_ngn:Number(process.env.SCOUT_EMAIL_UNLOCK_PRICE_KOBO||100000)/100});
  }catch(e){return res.status(502).json({error:"Unable to load sourced scout directory: "+String(e.message||e).slice(0,250)});}
 };
