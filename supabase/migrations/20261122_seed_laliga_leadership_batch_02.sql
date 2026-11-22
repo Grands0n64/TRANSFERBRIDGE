@@ -84,5 +84,4 @@ where not exists (
  where existing.league=d.league
    and existing.club_name=d.club_name
    and lower(existing.contact_name)=lower(d.contact_name)
-   and existing.department=d.department
 );
