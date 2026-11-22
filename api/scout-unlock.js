@@ -23,7 +23,7 @@ module.exports = async (req,res) => {
   if(!rowsRes.ok)return res.status(502).json({error:"Could not load your unlocks."});
   const rows=await rowsRes.json(),ids=rows.map(x=>x.contact_id);
   if(!ids.length)return res.status(200).json({unlocked:[]});
-  const contactsRes=await fetch(base+"/rest/v1/club_contacts?select=id,email& id=in.("+ids.join(",")+")",{headers:dbHeaders});
+  const contactsRes=await fetch(base+"/rest/v1/club_contacts?select=id,email&id=in.("+ids.join(",")+")",{headers:dbHeaders});
   if(!contactsRes.ok)return res.status(502).json({error:"Could not load unlocked email addresses."});
   return res.status(200).json({unlocked:await contactsRes.json()});
  }
