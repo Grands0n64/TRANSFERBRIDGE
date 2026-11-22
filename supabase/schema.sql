@@ -111,6 +111,7 @@ create policy "Scouts update unverified profile" on public.scout_profiles for up
 drop policy if exists "Verified club staff are publicly viewable" on public.club_staff;
 drop policy if exists "Authenticated users can submit staff for review" on public.club_staff;
 create policy "Verified club staff are publicly viewable" on public.club_staff for select to anon, authenticated using (verified = true);
+grant select on public.club_staff to anon, authenticated;
 create policy "Authenticated users can submit staff for review" on public.club_staff for insert to authenticated with check (auth.uid() = submitted_by and verified = false);
 
 drop policy if exists "Players create own applications" on public.player_applications;
