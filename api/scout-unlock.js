@@ -14,7 +14,7 @@ module.exports = async (req,res) => {
   return response.ok;
  }
  if(req.method==="POST"&&req.body?.action==="status"){
-  const token=String(req.headers.authorization||"").replace(/^Bearer\\s+/i,"");
+  const token=String(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
   if(!token)return res.status(401).json({error:"Log in to view unlocked scout emails."});
   const auth=await fetch(base+"/auth/v1/user",{headers:{apikey:anon,Authorization:"Bearer "+token}});
   if(!auth.ok)return res.status(401).json({error:"Your login session is invalid."});
