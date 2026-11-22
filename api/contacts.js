@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
     const response=await fetch(baseUrl+"/rest/v1/public_club_contacts?"+params.toString(),{headers:{apikey:key,Authorization:"Bearer "+key}});
     if(!response.ok){const detail=await response.text();return res.status(response.status).json({error:"Supabase contact query failed ("+response.status+"): "+detail.slice(0,400)});}
     const contacts=await response.json();
-    res.setHeader("Cache-Control","s-maxage=600, stale-while-revalidate=1800");
+    res.setHeader("Cache-Control","no-store, max-age=0");
     res.status(200).json({contacts:contacts.map(c=>({...c,email:null,phone:null,contact_locked:true})),count:contacts.length});
   }catch(error){res.status(502).json({error:"Unable to load football contacts: "+String(error.message||error).slice(0,250)});}
 };
