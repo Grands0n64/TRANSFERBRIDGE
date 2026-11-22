@@ -48,7 +48,7 @@ module.exports = async (req,res) => {
   const init=await fetch("https://api.paystack.co/transaction/initialize",{method:"POST",headers:{Authorization:"Bearer "+paystack,"Content-Type":"application/json"},body:JSON.stringify({email:user.email,amount,currency:"NGN",reference,callback_url:callback,metadata:{user_id:user.id,contact_id:contactId,product:"scout_email_unlock"}})});
   const pay=await init.json();
   if(!init.ok||!pay.status)return res.status(502).json({error:pay.message||"Payment could not be initialized."});
-  const save=await fetch(base+"/rest/v1/scout_contact_unlocks",{method:"POST",headers:{...dbHeaders,Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({user_id:user.id,contact_id:contactId,payment_reference:reference,amount_kobo:amount,currency:"NGN",status:"pending",updated_at:new Date().toISOString()})});
+  const save=await fetch(base+"/rest/v1/scout_contact_unlocks?on_conflict=user_id,contact_id",{method:"POST",headers:{...dbHeaders,Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({user_id:user.id,contact_id:contactId,payment_reference:reference,amount_kobo:amount,currency:"NGN",status:"pending",updated_at:new Date().toISOString()})});
   if(!save.ok){const detail=await save.text();return res.status(502).json({error:"Could not save unlock request: "+detail.slice(0,250)});}
   return res.status(200).json({authorization_url:pay.data.authorization_url,reference,amount_kobo:amount});
  }
