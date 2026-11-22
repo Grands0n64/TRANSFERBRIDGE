@@ -13,6 +13,20 @@ module.exports = async (req,res) => {
   })});
   return response.ok;
  }
+ if(req.method==="POST"&&req.body?.action==="status"){
+  const token=String(req.headers.authorization||"").replace(/^Bearer\\s+/i,"");
+  if(!token)return res.status(401).json({error:"Log in to view unlocked scout emails."});
+  const auth=await fetch(base+"/auth/v1/user",{headers:{apikey:anon,Authorization:"Bearer "+token}});
+  if(!auth.ok)return res.status(401).json({error:"Your login session is invalid."});
+  const user=await auth.json();
+  const rowsRes=await fetch(base+"/rest/v1/scout_contact_unlocks?select=contact_id,status&user_id=eq."+user.id+"&status=eq.paid",{headers:dbHeaders});
+  if(!rowsRes.ok)return res.status(502).json({error:"Could not load your unlocks."});
+  const rows=await rowsRes.json(),ids=rows.map(x=>x.contact_id);
+  if(!ids.length)return res.status(200).json({unlocked:[]});
+  const contactsRes=await fetch(base+"/rest/v1/club_contacts?select=id,email& id=in.("+ids.join(",")+")",{headers:dbHeaders});
+  if(!contactsRes.ok)return res.status(502).json({error:"Could not load unlocked email addresses."});
+  return res.status(200).json({unlocked:await contactsRes.json()});
+ }
  if(req.method==="POST"&&req.body?.action==="initialize"){
   const token=String(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
   if(!token)return res.status(401).json({error:"Log in before unlocking a scout email."});
@@ -20,7 +34,7 @@ module.exports = async (req,res) => {
   if(!auth.ok)return res.status(401).json({error:"Your login session is invalid. Please log in again."});
   const user=await auth.json(),contactId=String(req.body.contact_id||"");
   if(!contactId)return res.status(400).json({error:"Select a scout contact first."});
-  const contactRes=await fetch(base+"/rest/v1/club_contacts?select=id,contact_name,club_name,department,email& id=eq."+encodeURIComponent(contactId),{headers:dbHeaders});
+  const contactRes=await fetch(base+"/rest/v1/club_contacts?select=id,contact_name,club_name,department,email&id=eq."+encodeURIComponent(contactId),{headers:dbHeaders});
   if(!contactRes.ok)return res.status(502).json({error:"Could not load scout contact."});
   const contacts=await contactRes.json(),contact=contacts[0];
   if(!contact||!contact.email||!/scout|scouting|recruit|talent identification|player identification/i.test(String(contact.department||"")))return res.status(404).json({error:"This scout does not have a publicly sourced email available to unlock."});
@@ -53,9 +67,9 @@ module.exports = async (req,res) => {
   const contact=(await contactRes.json())[0];
   const userRes=await fetch(base+"/auth/v1/admin/users/"+userId,{headers:dbHeaders});
   const user=userRes.ok?await userRes.json():null;
-  const update=await fetch(base+"/rest/v1/scout_contact_unlocks?id=eq."+row.id,{method:"PATCH",headers:{...dbHeaders,Prefer:"return=minimal"},body:JSON.stringify({status:"paid",paid_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
+  const update=row.status==="paid"?{ok:true}:await fetch(base+"/rest/v1/scout_contact_unlocks?id=eq."+row.id+"&status=eq.pending",{method:"PATCH",headers:{...dbHeaders,Prefer:"return=minimal"},body:JSON.stringify({status:"paid",paid_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
   if(!update.ok){res.status(303).setHeader("Location","/?unlock=failed#scout-network");return res.end();}
-  if(contact?.email){
+  if(contact?.email&&row.status!=="paid"){
    const sent=await notify(contact.email,contact.contact_name,user?.email,contact.club_name);
    if(sent)await fetch(base+"/rest/v1/scout_contact_unlocks?id=eq."+row.id,{method:"PATCH",headers:{...dbHeaders,Prefer:"return=minimal"},body:JSON.stringify({scout_notified_at:new Date().toISOString()})});
   }
