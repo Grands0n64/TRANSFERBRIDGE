@@ -58,7 +58,7 @@ module.exports = async (req,res) => {
    res.status(303).setHeader("Location","/?unlock=failed#scout-network");return res.end();
   }
   const meta=result.data.metadata||{},userId=String(meta.user_id||""),contactId=String(meta.contact_id||"");
-  const rowRes=await fetch(base+"/rest/v1/scout_contact_unlocks?select=id,user_id,contact_id,status,amount_kobo&payment_reference=eq."+encodeURIComponent(reference),{headers:dbHeaders});
+  const rowRes=await fetch(base+"/rest/v1/scout_contact_unlocks?select=id,user_id,contact_id,status,amount_kobo,scout_notified_at&payment_reference=eq."+encodeURIComponent(reference),{headers:dbHeaders});
   const rows=rowRes.ok?await rowRes.json():[],row=rows[0];
   if(!row||row.user_id!==userId||row.contact_id!==contactId||Number(result.data.amount)!==Number(row.amount_kobo)||result.data.currency!=="NGN"){
    res.status(303).setHeader("Location","/?unlock=failed#scout-network");return res.end();
@@ -69,7 +69,7 @@ module.exports = async (req,res) => {
   const user=userRes.ok?await userRes.json():null;
   const update=row.status==="paid"?{ok:true}:await fetch(base+"/rest/v1/scout_contact_unlocks?id=eq."+row.id+"&status=eq.pending",{method:"PATCH",headers:{...dbHeaders,Prefer:"return=minimal"},body:JSON.stringify({status:"paid",paid_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
   if(!update.ok){res.status(303).setHeader("Location","/?unlock=failed#scout-network");return res.end();}
-  if(contact?.email&&row.status!=="paid"){
+  if(contact?.email&&!row.scout_notified_at){
    const sent=await notify(contact.email,contact.contact_name,user?.email,contact.club_name);
    if(sent)await fetch(base+"/rest/v1/scout_contact_unlocks?id=eq."+row.id,{method:"PATCH",headers:{...dbHeaders,Prefer:"return=minimal"},body:JSON.stringify({scout_notified_at:new Date().toISOString()})});
   }
