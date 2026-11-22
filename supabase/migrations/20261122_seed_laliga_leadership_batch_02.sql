@@ -1,8 +1,6 @@
 -- TRANSFERBRIDGE: LaLiga club presidents and officially published boards.
 -- Source URLs are club/league primary sources. President records are distinct from directors.
-insert into public.club_contacts
- (league,club_name,contact_name,job_title,department,contact_url,source_url,source_type,verification_status,notes)
-values
+with seed (league,club_name,contact_name,job_title,department,contact_url,source_url,source_type,verification_status,notes) as (values
 ('La Liga','Alavés','Alfonso Fernández de Trocóniz','President','Ownership & board',null,'https://www.laliga.com/en-GB/clubs/d-alaves','official','official-source','President listed by the official LaLiga club profile or official club publication. Source reviewed November 2026.'),
 ('La Liga','Athletic Club','Jon Uriarte Uranga','President','Ownership & board',null,'https://www.athletic-club.eus/en/club/about-the-club/directors/','official','official-source','President listed by the official LaLiga club profile or official club publication. Source reviewed November 2026.'),
 ('La Liga','Atlético de Madrid','Enrique Cerezo','President','Ownership & board',null,'https://en.atleticodemadrid.com/atm/board-of-directors','official','official-source','President listed by the official LaLiga club profile or official club publication. Source reviewed November 2026.'),
@@ -73,4 +71,18 @@ values
 ('La Liga','Villarreal','Manuel Montaña Dura','Board Member','Ownership & board',null,'https://villarrealcf.es/en/consejo-administracion/','official','official-source','Official Villarreal CF Board of Directors page.'),
 ('La Liga','Villarreal','Juan Carlos Malabia','Board Member','Ownership & board',null,'https://villarrealcf.es/en/consejo-administracion/','official','official-source','Official Villarreal CF Board of Directors page.'),
 ('La Liga','Villarreal','Adolfo Andreu Jovani','Board Member','Ownership & board',null,'https://villarrealcf.es/en/consejo-administracion/','official','official-source','Official Villarreal CF Board of Directors page.')
-on conflict do nothing;
+), dedup as (
+ select distinct on (league,club_name,contact_name,department) *
+ from seed
+ order by league,club_name,contact_name,department
+)
+insert into public.club_contacts (league,club_name,contact_name,job_title,department,contact_url,source_url,source_type,verification_status,notes)
+select d.league,d.club_name,d.contact_name,d.job_title,d.department,d.contact_url,d.source_url,d.source_type,d.verification_status,d.notes
+from dedup d
+where not exists (
+ select 1 from public.club_contacts existing
+ where existing.league=d.league
+   and existing.club_name=d.club_name
+   and lower(existing.contact_name)=lower(d.contact_name)
+   and existing.department=d.department
+);
