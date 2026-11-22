@@ -90,7 +90,7 @@
   async function liveStaffSearch(){
     const club=$("#staffClub").value.trim(),grid=$("#staffGrid");
     if(!club){note("#staffNote","Enter a club name first.");return;}
-    grid.innerHTML="<p>Checking verified staff directory…</p>";
+    grid.innerHTML="<p>Checking sourced club professionals…</p>";
     try{
       const response=await fetch("/api/club-staff?club="+encodeURIComponent(club)),data=await response.json();
       if(!response.ok||!Array.isArray(data.staff))throw new Error(data.error||"Staff directory unavailable.");
