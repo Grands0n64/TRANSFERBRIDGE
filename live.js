@@ -83,8 +83,8 @@
     try{
       const response=await fetch("/api/club-staff?club="+encodeURIComponent(club)),data=await response.json();
       if(!response.ok||!Array.isArray(data.staff))throw new Error(data.error||"Staff directory unavailable.");
-      grid.innerHTML=data.staff.map(p=>'<article class="player-card"><span class="player-avatar">TB</span><span><h3>'+safe(p.full_name)+'</h3><p>'+safe(p.role)+' · '+safe(p.department||"")+' · '+safe(p.club_name)+'</p><a class="tag" href="'+safe(p.source_url)+'" target="_blank" rel="noopener">View source ↗</a></span></article>').join("")||"<p>No verified staff records for this club yet. Submit sourced records for review.</p>";
-      note("#staffNote",data.note||"Only approved, sourced records appear here.");
+      grid.innerHTML=data.staff.map(p=>'<article class="player-card"><span class="player-avatar">TB</span><span><h3>'+safe(p.full_name)+'</h3><p>'+safe(p.role)+' · '+safe(p.department||"")+' · '+safe(p.club_name)+'</p><span class="tag">'+safe(p.record_status||"Verified")+'</span> <a class="tag" href="'+safe(p.source_url)+'" target="_blank" rel="noopener">View source ↗</a>'+(p.notes?'<p>'+safe(p.notes)+'</p>':'')+'</span></article>').join("")||"<p>No sourced staff records found for this club yet.</p>";
+      note("#staffNote",(data.note||"Staff records are labelled by verification status.")+" Verified: "+(data.verified_count||0)+". Source-listed: "+(data.source_listed_count||0)+".");
     }catch(err){grid.innerHTML="<p>"+safe(err.message)+"</p>";note("#staffNote","The staff search could not complete. Check the database setup and try again.");}
   }
   async function submitStaffRecord(e){
