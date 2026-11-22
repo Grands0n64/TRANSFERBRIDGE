@@ -26,7 +26,7 @@ async function openClubDirectory(club,league,country){
   $("#submitToClub")?.addEventListener("click",()=>{const field=$("#applicationTargetClub");if(field)field.value=club;const note=$("#applicationNote");if(note)note.textContent="Your application will be marked for "+club+". Select a scout if one is listed, or send it to TRANSFERBRIDGE for review.";$("#player-application").scrollIntoView({behavior:"smooth"});});
  }catch(err){panel.innerHTML='<div class="club-detail-head"><h3>'+club+'</h3><button class="btn btn-quiet" id="closeClubDetail">Close ×</button></div><p class="data-note">'+err.message+'</p>';$("#closeClubDetail")?.addEventListener("click",()=>{panel.hidden=true;});}
 }
-function renderPlayers(){$("#playerGrid").innerHTML='<p>Enter a club name and select “Find real squad” to retrieve current squad data.</p>';}
+function renderPlayers(){$("#playerGrid").innerHTML="";const note=$("#playerDataNote");if(note)note.hidden=true;}
 function toast(message){const t=$("#toast");t.textContent=message;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}
 function openModal(role){$("#accountType").value=role||"Player";$("#signupSuccess").hidden=true;$("#signupForm").hidden=false;$("#modal").classList.add("open");$("#modal").setAttribute("aria-hidden","false");document.body.style.overflow="hidden"}
 function closeModal(){$("#modal").classList.remove("open");$("#modal").setAttribute("aria-hidden","true");document.body.style.overflow=""}
