@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
     });
     const [staffResponse, contactsResponse] = await Promise.all([
       fetch(baseUrl + "/rest/v1/club_staff?" + verifiedParams, { headers }),
-      fetch(baseUrl + "/rest/v1/club_contacts?" + contactsParams, { headers })
+      fetch(baseUrl + "/rest/v1/public_club_contacts?" + contactsParams, { headers })
     ]);
     for (const [response, table] of [[staffResponse, "club_staff"], [contactsResponse, "club_contacts"]]) {
       if (!response.ok) {
