@@ -1,9 +1,7 @@
 -- TRANSFERBRIDGE: official leadership data batch (November 2026).
 -- Names and categories below are transcribed from the cited official league/club publications.
 -- Premier League register categories are not interchangeable with club president/chairman titles.
-insert into public.club_contacts
- (league,club_name,contact_name,job_title,department,contact_url,source_url,source_type,verification_status,notes)
-values
+with seed (league,club_name,contact_name,job_title,department,contact_url,source_url,source_type,verification_status,notes) as (values
 ('Premier League','Arsenal','Kelly Blaha','Statutory director','Ownership & board',null,'https://resources.premierleague.pulselive.com/premierleague/document/2026/05/13/13f8de33-b610-458d-bf04-3aa29cb37e8c/2026.05.11-Public-Register-of-Directors.pdf','official','official-source','Premier League Public Register of Club Directors, as at 11 May 2026. Role category reproduced from the official register; this is not a claim that every listed person is club president.'),
 ('Premier League','Arsenal','Josh Kroenke','Statutory director','Ownership & board',null,'https://resources.premierleague.pulselive.com/premierleague/document/2026/05/13/13f8de33-b610-458d-bf04-3aa29cb37e8c/2026.05.11-Public-Register-of-Directors.pdf','official','official-source','Premier League Public Register of Club Directors, as at 11 May 2026. Role category reproduced from the official register; this is not a claim that every listed person is club president.'),
 ('Premier League','Arsenal','Stanley Kroenke','Statutory director','Ownership & board',null,'https://resources.premierleague.pulselive.com/premierleague/document/2026/05/13/13f8de33-b610-458d-bf04-3aa29cb37e8c/2026.05.11-Public-Register-of-Directors.pdf','official','official-source','Premier League Public Register of Club Directors, as at 11 May 2026. Role category reproduced from the official register; this is not a claim that every listed person is club president.'),
@@ -271,4 +269,18 @@ values
 ('La Liga','Barcelona','Xavier Barbany i Canaleta','Board Member','Ownership & board','https://www.fcbarcelona.com/en/club/organisation-and-strategic-plan/the-board-of-directors','https://www.fcbarcelona.com/en/club/news/4529324/','official','official-source','FC Barcelona official announcement of its 22-member board on 1 July 2026; board term stated through 2031.'),
 ('La Liga','Barcelona','Jaume Nicolàs i Magriñà','Board Member','Ownership & board','https://www.fcbarcelona.com/en/club/organisation-and-strategic-plan/the-board-of-directors','https://www.fcbarcelona.com/en/club/news/4529324/','official','official-source','FC Barcelona official announcement of its 22-member board on 1 July 2026; board term stated through 2031.'),
 ('La Liga','Barcelona','Sisco Pujol i Sabaté','Board Member','Ownership & board','https://www.fcbarcelona.com/en/club/organisation-and-strategic-plan/the-board-of-directors','https://www.fcbarcelona.com/en/club/news/4529324/','official','official-source','FC Barcelona official announcement of its 22-member board on 1 July 2026; board term stated through 2031.')
-on conflict do nothing;
+), dedup as (
+ select distinct on (league,club_name,contact_name,department) *
+ from seed
+ order by league,club_name,contact_name,department
+)
+insert into public.club_contacts (league,club_name,contact_name,job_title,department,contact_url,source_url,source_type,verification_status,notes)
+select d.league,d.club_name,d.contact_name,d.job_title,d.department,d.contact_url,d.source_url,d.source_type,d.verification_status,d.notes
+from dedup d
+where not exists (
+ select 1 from public.club_contacts existing
+ where existing.league=d.league
+   and existing.club_name=d.club_name
+   and lower(existing.contact_name)=lower(d.contact_name)
+   and existing.department=d.department
+);
