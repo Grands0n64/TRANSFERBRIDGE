@@ -4,7 +4,7 @@ module.exports = async (req,res) => {
  if(!url||!service||!anon||!paystack)return res.status(503).json({error:"Configure SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY and PAYSTACK_SECRET_KEY in Vercel."});
  const base=new URL(url).origin,dbHeaders={apikey:service,Authorization:"Bearer "+service,"Content-Type":"application/json"};
  const reference=String(req.body?.reference||req.query?.reference||"").slice(0,100);
- const origin=(req.headers["x-forwarded-proto"]||"https")+"//"+req.headers.host;
+ const origin=process.env.TRANSFERBRIDGE_SITE_URL||(req.headers["x-forwarded-proto"]||"https")+"//"+req.headers.host;
  async function notify(email,scoutName,playerEmail,club){
   if(!process.env.RESEND_API_KEY||!process.env.TRANSFERBRIDGE_FROM_EMAIL)return false;
   const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({
@@ -28,6 +28,7 @@ module.exports = async (req,res) => {
   return res.status(200).json({unlocked:await contactsRes.json()});
  }
  if(req.method==="POST"&&req.body?.action==="initialize"){
+  if(!process.env.RESEND_API_KEY||!process.env.TRANSFERBRIDGE_FROM_EMAIL)return res.status(503).json({error:"Email notifications are not configured. Set RESEND_API_KEY and TRANSFERBRIDGE_FROM_EMAIL before accepting unlock payments."});
   const token=String(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
   if(!token)return res.status(401).json({error:"Log in before unlocking a scout email."});
   const auth=await fetch(base+"/auth/v1/user",{headers:{apikey:anon,Authorization:"Bearer "+token}});
