@@ -153,9 +153,9 @@
       grid.innerHTML=(registeredCards+externalCards)||empty;
       grid.querySelectorAll(".scout-submit-btn").forEach(btn=>btn.addEventListener("click",()=>{if(select)select.value=btn.dataset.scout;$("#player-application")?.scrollIntoView({behavior:"smooth"});note("#applicationNote","Selected scout. Complete the player CV and footage below.");}));
       grid.querySelectorAll(".scout-pay-unlock").forEach(btn=>btn.addEventListener("click",async()=>{
-        if(!client){setAuthMode("login");$("#signupModal")?.classList.add("open");return note("#scoutDirectoryNote","Log in or create a Player account before unlocking a scout email.");}
+        if(!client){$("#loginBtn")?.click();return note("#scoutDirectoryNote","Log in or create a Player account before unlocking a scout email.");}
         const {data:sessionData}=await client.auth.getSession(),token=sessionData?.session?.access_token;
-        if(!token){setAuthMode("login");$("#signupModal")?.classList.add("open");return;}
+        if(!token){$("#loginBtn")?.click();return note("#scoutDirectoryNote","Log in before unlocking a scout email.");}
         btn.disabled=true;btn.textContent="Preparing secure payment…";
         try{
           const pay=await fetch("/api/scout-unlock",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action:"initialize",contact_id:btn.dataset.contact})});
