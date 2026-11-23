@@ -134,7 +134,7 @@
     try{
       const response=await fetch("/api/scouts"),body=await response.json();
       if(!response.ok||!Array.isArray(body.scouts))throw new Error(body.error||"Scout directory unavailable.");
-      const data=body.scouts,registered=data.filter(s=>s.kind==="registered"),external=data.filter(s=>s.kind==="external"),unlockPrice=Number(body.unlock_price_ngn||1000);
+      const data=body.scouts,registered=data.filter(s=>s.kind==="registered"),external=data.filter(s=>s.kind==="external");
       let unlocked={};
       if(client&&currentUser){
         const {data:sessionData}=await client.auth.getSession(),token=sessionData?.session?.access_token;
@@ -146,26 +146,15 @@
       const registeredCards=registered.map(s=>'<article class="player-card scout-directory-card"><span class="player-avatar">SC</span><span class="scout-card-content"><h3>'+safe(s.full_name||"Verified scout")+'</h3><p>'+safe(s.organisation||"Independent scout")+' · '+safe(s.territory||s.country||"Territory not listed")+'</p><p>'+safe(s.positions||"Positions not specified")+' · '+safe(s.age_groups||"Age groups not specified")+'</p><p>'+safe(s.bio||"")+'</p><span class="tag">TRANSFERBRIDGE verified member</span><div class="scout-card-actions"><button class="btn btn-gold scout-submit-btn" type="button" data-scout="'+safe(s.user_id)+'">Submit My Player Profile</button></div></span></article>').join("");
       const externalCards=external.map(s=>{
         const email=unlocked[s.contact_id];
-        const lock=s.has_email?(email?'<p class="unlocked-email">✉ <a href="mailto:'+safe(email)+'">'+safe(email)+'</a> <span class="tag">Unlocked</span></p>':'<button class="btn btn-gold scout-pay-unlock" type="button" data-contact="'+safe(s.contact_id)+'">Unlock scout email · ₦'+safe(unlockPrice.toLocaleString("en-NG"))+' 🔒</button>'):'<span class="tag">No public email available</span>';
+        const lock=s.has_email?(email?'<p class="unlocked-email">✉ <a href="mailto:'+safe(email)+'">'+safe(email)+'</a> <span class="tag">Unlocked</span></p>':'<button class="btn btn-gold" type="button" disabled title="Payment setup is paused">Email locked · payment setup pending 🔒</button>'):'<span class="tag">No public email available</span>';
         return '<article class="player-card scout-directory-card"><span class="player-avatar">SC</span><span class="scout-card-content"><h3>'+safe(s.full_name||"Club scouting professional")+'</h3><p>'+safe(s.organisation||"Football club")+' · '+safe(s.territory||"")+'</p><p>'+safe(s.positions||"Scouting / recruitment")+'</p><span class="tag">'+safe(s.verification_status||"Source listed")+' · External professional</span><p><a class="source-link" href="'+safe(s.source_url||s.credentials_url||"#")+'" target="_blank" rel="noopener">View public source ↗</a></p><div class="scout-card-actions">'+lock+'</div></span></article>';
       }).join("");
       const empty='<p>No publicly sourced club scouting professionals are available in the directory yet.</p>';
       grid.innerHTML=(registeredCards+externalCards)||empty;
       grid.querySelectorAll(".scout-submit-btn").forEach(btn=>btn.addEventListener("click",()=>{if(select)select.value=btn.dataset.scout;$("#player-application")?.scrollIntoView({behavior:"smooth"});note("#applicationNote","Selected scout. Complete the player CV and footage below.");}));
-      grid.querySelectorAll(".scout-pay-unlock").forEach(btn=>btn.addEventListener("click",async()=>{
-        if(!client){$("#loginBtn")?.click();return note("#scoutDirectoryNote","Log in or create a Player account before unlocking a scout email.");}
-        const {data:sessionData}=await client.auth.getSession(),token=sessionData?.session?.access_token;
-        if(!token){$("#loginBtn")?.click();return note("#scoutDirectoryNote","Log in before unlocking a scout email.");}
-        btn.disabled=true;btn.textContent="Preparing secure payment…";
-        try{
-          const pay=await fetch("/api/scout-unlock",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action:"initialize",contact_id:btn.dataset.contact})});
-          const result=await pay.json();if(!pay.ok)throw new Error(result.error||"Payment could not be started.");
-          window.location.href=result.authorization_url;
-        }catch(error){btn.disabled=false;btn.textContent="Unlock scout email 🔒";note("#scoutDirectoryNote",error.message);}
-      }));
       if(select)select.innerHTML='<option value="">No specific scout — TRANSFERBRIDGE review</option>'+registered.map(s=>'<option value="'+safe(s.user_id)+'">'+safe(s.full_name||"Scout")+' — '+safe(s.organisation||"Independent")+'</option>').join("");
       const params=new URLSearchParams(location.search);
-      if(params.get("unlock")==="success")note("#scoutDirectoryNote","Payment confirmed. Your unlocked scout email is now displayed in the directory, and the scout has been notified by email when notification delivery is configured.");
+      if(params.get("unlock")==="success")note("#scoutDirectoryNote","Scout email unlocking is temporarily paused while TRANSFERBRIDGE finalises its payment provider.");
       if(params.has("unlock")){params.delete("unlock");history.replaceState({}, "", location.pathname+location.hash);}
     }catch(error){grid.innerHTML="<p>"+safe(error.message)+"</p>";}
   }
