@@ -1,18 +1,10 @@
-// Paystack-backed scout email unlock. The contact's email is only returned after server-side payment verification.
+// Scout email unlock. Contact emails are only returned after server-side payment verification; scout outreach is handled manually by TRANSFERBRIDGE.
 module.exports = async (req,res) => {
  const url=process.env.SUPABASE_URL,service=process.env.SUPABASE_SERVICE_ROLE_KEY,anon=process.env.SUPABASE_ANON_KEY,paystack=process.env.PAYSTACK_SECRET_KEY;
  if(!url||!service||!anon||!paystack)return res.status(503).json({error:"Configure SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY and PAYSTACK_SECRET_KEY in Vercel."});
  const base=new URL(url).origin,dbHeaders={apikey:service,Authorization:"Bearer "+service,"Content-Type":"application/json"};
  const reference=String(req.body?.reference||req.query?.reference||"").slice(0,100);
  const origin=process.env.TRANSFERBRIDGE_SITE_URL||(req.headers["x-forwarded-proto"]||"https")+"//"+req.headers.host;
- async function notify(email,scoutName,playerEmail,club){
-  if(!process.env.RESEND_API_KEY||!process.env.TRANSFERBRIDGE_FROM_EMAIL)return false;
-  const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:"Bearer "+process.env.RESEND_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({
-   from:process.env.TRANSFERBRIDGE_FROM_EMAIL,to:[email],subject:"A player has unlocked your scouting contact on TRANSFERBRIDGE",
-   html:"<p>Hello "+String(scoutName||"Scout").replace(/[&<>"]/g,"")+",</p><p>A TRANSFERBRIDGE member has completed payment to unlock your publicly listed scouting contact for "+String(club||"your club").replace(/[&<>"]/g,"")+".</p><p>The member may now contact you using the publicly listed email address associated with your professional listing.</p><p>— TRANSFERBRIDGE</p>"
-  })});
-  return response.ok;
- }
  if(req.method==="POST"&&req.body?.action==="status"){
   const token=String(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
   if(!token)return res.status(401).json({error:"Log in to view unlocked scout emails."});
@@ -28,7 +20,6 @@ module.exports = async (req,res) => {
   return res.status(200).json({unlocked:await contactsRes.json()});
  }
  if(req.method==="POST"&&req.body?.action==="initialize"){
-  if(!process.env.RESEND_API_KEY||!process.env.TRANSFERBRIDGE_FROM_EMAIL)return res.status(503).json({error:"Email notifications are not configured. Set RESEND_API_KEY and TRANSFERBRIDGE_FROM_EMAIL before accepting unlock payments."});
   const token=String(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
   if(!token)return res.status(401).json({error:"Log in before unlocking a scout email."});
   const auth=await fetch(base+"/auth/v1/user",{headers:{apikey:anon,Authorization:"Bearer "+token}});
@@ -63,16 +54,6 @@ module.exports = async (req,res) => {
   const rows=rowRes.ok?await rowRes.json():[],row=rows[0];
   if(!row||row.user_id!==userId||row.contact_id!==contactId||Number(result.data.amount)!==Number(row.amount_kobo)||result.data.currency!=="NGN"){
    res.status(303).setHeader("Location","/?unlock=failed#scout-network");return res.end();
-  }
-  const contactRes=await fetch(base+"/rest/v1/club_contacts?select=contact_name,club_name,email& id=eq."+encodeURIComponent(contactId),{headers:dbHeaders});
-  const contact=(await contactRes.json())[0];
-  const userRes=await fetch(base+"/auth/v1/admin/users/"+userId,{headers:dbHeaders});
-  const user=userRes.ok?await userRes.json():null;
-  const update=row.status==="paid"?{ok:true}:await fetch(base+"/rest/v1/scout_contact_unlocks?id=eq."+row.id+"&status=eq.pending",{method:"PATCH",headers:{...dbHeaders,Prefer:"return=minimal"},body:JSON.stringify({status:"paid",paid_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
-  if(!update.ok){res.status(303).setHeader("Location","/?unlock=failed#scout-network");return res.end();}
-  if(contact?.email&&!row.scout_notified_at){
-   const sent=await notify(contact.email,contact.contact_name,user?.email,contact.club_name);
-   if(sent)await fetch(base+"/rest/v1/scout_contact_unlocks?id=eq."+row.id,{method:"PATCH",headers:{...dbHeaders,Prefer:"return=minimal"},body:JSON.stringify({scout_notified_at:new Date().toISOString()})});
   }
   res.status(303).setHeader("Location","/?unlock=success#scout-network");return res.end();
  }
